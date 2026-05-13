@@ -1,0 +1,41 @@
+name: flutter_3d_accessory
+description: "A new Flutter project."
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.11.4
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_scene: ^0.12.0
+  http: ^1.6.0
+  model_viewer_plus: ^1.10.0
+  path_provider: ^2.1.5
+  vector_math: ^2.2.0
+  video_player: ^2.11.1
+  webview_flutter: ^4.13.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  flutter_scene_importer: ^0.12.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/web/
+    - assets/models/character/
+    - assets/models/hair/
+    - assets/models/hats/
+    - assets/models/glasses/
+    - assets/models/masks/
+    - assets/models/outfits/
+    - assets/models/others/
+    - assets/thumbnails/hair/
+    - assets/thumbnails/hats/
+    - assets/thumbnails/glasses/
+    - assets/thumbnails/masks/
+    - assets/thumbnails/outfits/

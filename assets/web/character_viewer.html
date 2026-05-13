@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>3D Character Demo</title>
+  <style>
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: transparent;
+      font-family: Arial, sans-serif;
+    }
+
+    #canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    #status {
+      position: fixed;
+      left: 0;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      color: rgba(255,255,255,0.75);
+      text-align: center;
+      font-size: 14px;
+      pointer-events: none;
+      white-space: pre-line;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+  <div id="status">Loading character...</div>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/"
+      }
+    }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    let scene;
+    let camera;
+    let renderer;
+    let controls;
+    let rootGroup;
+    let loader;
+
+    const partModels = new Map();
+    const partConfigs = new Map();
+    const requestedSlotVisibility = new Map([
+      ['hair', true],
+      ['hat', true],
+      ['glasses', true],
+      ['mask', true],
+      ['outfit', true],
+      ['back', true],
+      ['wrist', true]
+    ]);
+
+    const canvas = document.getElementById('canvas');
+    const status = document.getElementById('status');
+
+    const DEFAULT_CHARACTER_OBJECT = {
+      id: 'base_character_1',
+      name: 'Character 1',
+      base: {
+        id: 'base_character_1',
+        name: 'Character 1',
+        slot: 'body',
+        url: '/models/character/base_character.glb',
+        position: [0, 0, 0],
+        rotation: [0, 0, 0],
+        scale: [1, 1, 1],
+        hidesSlots: []
+      },
+      accessories: [
+        {
+          id: 'hair_style_1',
+          name: 'Hair 1',
+          slot: 'hair',
+          url: '/models/hair/hair_style_1.glb',
+          position: [0, 0.87, 0],
+          rotation: [0, 0.02, 0],
+          scale: [0.49, 0.49, 0.49],
+          hidesSlots: []
+        },
+        {
+          id: 'hat_style_1',
+          name: 'Hat 1',
+          slot: 'hat',
+          url: '/models/hats/hat_style_1.glb',
+          position: [0, 0.88, -0.04],
+          rotation: [0, 0, 0],
+          scale: [0.60, 0.60, 0.60],
+          hidesSlots: ['hair']
+        }
+      ]
+    };
+
+    init();
+    animate();
+
+    function init() {
+      scene = new THREE.Scene();
+      loader = new GLTFLoader();
+
+      camera = new THREE.PerspectiveCamera(
+        40,
+        window.innerWidth / window.innerHeight,
+        0.01,
+        100
+      );
+      camera.position.set(0, 0.8, 4.2);
+
+      renderer = new THREE.WebGLRenderer({
+        canvas,
+        alpha: true,
+        antialias: true
+      });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+      const ambientLight = new THREE.AmbientLight(0xffffff, 1.8);
+      scene.add(ambientLight);
+
+      const keyLight = new THREE.DirectionalLight(0xffffff, 2.8);
+      keyLight.position.set(3, 4, 4);
+      scene.add(keyLight);
+
+      const fillLight = new THREE.DirectionalLight(0x8b5cf6, 1.2);
+      fillLight.position.set(-3, 2, 3);
+      scene.add(fillLight);
+
+      rootGroup = new THREE.Group();
+      scene.add(rootGroup);
+
+      controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.enablePan = false;
+      controls.target.set(0, 0.6, 0);
+      controls.update();
+
+      loadCharacterObject(DEFAULT_CHARACTER_OBJECT);
+      window.addEventListener('resize', onResize);
+    }
+
+    async function loadCharacterObject(characterObject) {
+      try {
+        status.style.display = 'block';
+        status.innerText = 'Loading character...';
+
+        clearCurrentParts();
+
+        await loadPart(characterObject.base);
+
+        const accessories = characterObject.accessories || [];
+        for (const accessory of accessories) {
+          await loadPart(accessory);
+        }
+
+        applySlotVisibility();
+        fitCharacterToView();
+        status.style.display = 'none';
+      } catch (error) {
+        console.error(error);
+        status.innerText = 'Cannot load GLB files: ' + (error?.message || error) +
+          '\nCheck local asset server, model paths, or Three.js CDN internet.';
+      }
+    }
+
+    async function loadPart(config) {
+      if (!config || !config.slot || !config.url) return;
+
+      removePart(config.slot);
+
+      const gltf = await loader.loadAsync(config.url);
+      const object = preparePart(gltf.scene, config);
+
+      if (config.slot !== 'body') {
+        requestedSlotVisibility.set(config.slot, true);
+      }
+
+      rootGroup.add(object);
+      partModels.set(config.slot, object);
+      partConfigs.set(config.slot, config);
+    }
+
+    function preparePart(object, config) {
+      object.name = config.id || config.slot;
+      object.position.set(...(config.position || [0, 0, 0]));
+      object.rotation.set(...(config.rotation || [0, 0, 0]));
+      object.scale.set(...(config.scale || [1, 1, 1]));
+
+      object.traverse((child) => {
+        if (child.isMesh) {
+          child.frustumCulled = false;
+          if (child.material) {
+            child.material.needsUpdate = true;
+          }
+        }
+      });
+
+      return object;
+    }
+
+    function clearCurrentParts() {
+      for (const slot of Array.from(partModels.keys())) {
+        removePart(slot);
+      }
+      partModels.clear();
+      partConfigs.clear();
+      rootGroup.position.set(0, 0, 0);
+      rootGroup.rotation.set(0, 0, 0);
+    }
+
+    function removePart(slot) {
+      const object = partModels.get(slot);
+      if (!object) return;
+
+      rootGroup.remove(object);
+      object.traverse((child) => {
+        if (child.isMesh) {
+          child.geometry?.dispose?.();
+          if (Array.isArray(child.material)) {
+            child.material.forEach((material) => material.dispose?.());
+          } else {
+            child.material?.dispose?.();
+          }
+        }
+      });
+
+      partModels.delete(slot);
+      partConfigs.delete(slot);
+    }
+
+    function fitCharacterToView() {
+      if (!rootGroup || partModels.size === 0) return;
+
+      rootGroup.position.set(0, 0, 0);
+
+      const box = new THREE.Box3().setFromObject(rootGroup);
+      const center = box.getCenter(new THREE.Vector3());
+      const size = box.getSize(new THREE.Vector3());
+      const maxSize = Math.max(size.x, size.y, size.z);
+
+      rootGroup.position.x -= center.x;
+      rootGroup.position.y -= center.y;
+      rootGroup.position.z -= center.z;
+
+      controls.target.set(0, 0, 0);
+
+      const distance = Math.max(maxSize * 1.9, 2.8);
+      camera.position.set(0, maxSize * 0.12, distance);
+      camera.near = 0.01;
+      camera.far = Math.max(100, distance * 10);
+      camera.updateProjectionMatrix();
+      controls.update();
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      if (controls) controls.update();
+      renderer.render(scene, camera);
+    }
+
+    function onResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    function applySlotVisibility() {
+      const hiddenSlots = new Set();
+
+      for (const [slot, config] of partConfigs.entries()) {
+        const requestedVisible = requestedSlotVisibility.get(slot) ?? true;
+        if (!requestedVisible) continue;
+
+        const hidesSlots = config.hidesSlots || [];
+        hidesSlots.forEach((hiddenSlot) => hiddenSlots.add(hiddenSlot));
+      }
+
+      for (const [slot, object] of partModels.entries()) {
+        if (slot === 'body') {
+          object.visible = true;
+          continue;
+        }
+
+        const requestedVisible = requestedSlotVisibility.get(slot) ?? true;
+        object.visible = requestedVisible && !hiddenSlots.has(slot);
+      }
+    }
+
+    window.setCharacterObject = function(characterObject) {
+      loadCharacterObject(characterObject);
+    };
+
+    window.setAccessory = function(config) {
+      loadPart(config)
+        .then(() => {
+          applySlotVisibility();
+          fitCharacterToView();
+        })
+        .catch((error) => {
+          console.error(error);
+          status.style.display = 'block';
+          status.innerText = 'Cannot load accessory: ' + (error?.message || error);
+        });
+    };
+
+    window.setPartVisible = function(partName, visible) {
+      requestedSlotVisibility.set(partName, visible);
+      applySlotVisibility();
+    };
+
+    window.rotateCharacter = function(deltaY) {
+      if (!rootGroup) return;
+      rootGroup.rotation.y += deltaY;
+    };
+
+    window.resetView = function() {
+      if (!rootGroup) return;
+      rootGroup.rotation.set(0, 0, 0);
+      fitCharacterToView();
+    };
+  </script>
+</body>
+</html>
