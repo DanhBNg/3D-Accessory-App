@@ -1,42 +1,53 @@
 # 3D Model Prompt Guide
 
-Tai lieu nay dung de tao lai model 3D cho `character_3d` sao cho cac body va accessory de fit voi nhau hon. Muc tieu hien tai khong phai tao model dep rieng le, ma la tao mot he model co cung quy chuan de ghep duoc trong viewer.
+Tai lieu nay dung de tao GLB cho `character_3d` sao cho body va accessory de fit voi nhau ngay tu dau. Muc tieu khong phai tao tung model dep rieng le, ma la tao mot he model co cung scale, pose, huong, pivot va style.
 
 ## Van De Can Giai Quyet
 
-Model hien tai co the khong fit vi body duoc tao tu prompt khac nhau:
+Model hien tai co the khong fit vi body/accessory duoc tao tu prompt khac nhau:
 
-- chieu cao va ti le dau/than khac nhau
-- model quay huong khac nhau
-- diem goc/pivot khac nhau
-- pose tay/chan khac nhau
-- accessory duoc tao theo kich thuoc rieng, khong theo cung body chuan
-- mot so phu kien co the da gom ca phan dau/mat, lam kho gan vao character khac
+- body co ti le dau/than khac nhau
+- body co huong quay khac nhau
+- pose khac nhau
+- mesh/pivot bi lech xa origin
+- accessory bi sinh kem dau, mat, tay, body, mannequin hoac pedestal
+- accessory fit body nay nhung khong fit body khac
 
-Vi vay chi chinh `position`, `rotation`, `scale` trong code la xu ly duoc cho demo, nhung cang nhieu model thi cang ton cong. Cach tot hon la chuan hoa prompt tao model.
+Neu model sai huong, sai pose, kem body/head, hoac pivot qua lech thi nen regenerate model. Chi nen chinh `position`, `rotation`, `scale` trong code khi sai lech nho.
 
 ## Quy Chuan Chung
 
-Ap dung cho moi model body va accessory:
+Ap dung cho moi body va accessory:
 
-- Format: GLB, single object where possible.
-- Style: stylized low-poly / clean 3D game asset.
-- Orientation: facing forward, front view aligned to positive Z direction.
-- Pose: neutral A-pose or relaxed T-pose, symmetrical.
-- Scale: human character around 1.8 units tall.
-- Origin/pivot: centered at ground between feet for body; centered at attachment area for accessory.
-- Background: none.
+- Format: GLB.
+- Style: cute stylized chibi mobile game asset.
+- Shape language: soft rounded toy-like shapes.
+- Topology: simple clean topology, mobile optimized.
+- Orientation: front facing +Z.
+- Rotation: neutral rotation.
+- Scale target: chibi character around 1.8 to 2.0 units tall.
+- Proportions: large head, compact small body.
+- Origin: object centered near origin.
+- Pivot: near the real attachment point.
 - Animation: none.
-- Rig: not required for current demo.
-- Materials: simple PBR or flat colors, no baked background.
-- Avoid: extreme proportions, tilted head, dynamic action pose, merged accessory with body.
+- Background: none.
+- Pedestal/display stand: none.
+- Text/logo: none.
+
+Important technical constraints:
+
+```text
+Do not place pivot far away from the object.
+Do not offset the mesh far from origin.
+Do not include hidden scene objects, camera, lights, pedestal, floor, or background mesh.
+```
 
 ## Negative Prompt Chung
 
 Use this negative prompt for all generated models:
 
 ```text
-no background, no base pedestal, no scene, no animation, no dramatic pose, no asymmetry, no cropped mesh, no extra floating parts, no text, no logo, no weapons, no merged full character for accessory, no oversized accessory, no non-standard orientation, no rotated model, no lying down pose
+no background, no base pedestal, no display stand, no scene, no animation, no dramatic pose, no asymmetry, no cropped mesh, no extra floating parts, no text, no logo, no weapons, no merged full character for accessory, no oversized accessory, no non-standard orientation, no rotated model, no lying down pose, no far-away pivot, no mesh offset far from origin
 ```
 
 ## Body Prompt
@@ -44,17 +55,40 @@ no background, no base pedestal, no scene, no animation, no dramatic pose, no as
 Use for `assets/models/character/`.
 
 ```text
-Create a stylized low-poly 3D game character body as a GLB model. The character must stand upright in a neutral A-pose, facing forward, symmetrical, feet on the ground, origin centered between the feet at ground level. Use a consistent human proportion with total height around 1.8 units, head size suitable for accessories like hats, glasses, masks, and hair. Keep the head, face, torso, arms, and legs clean and simple. Do not include hair, hat, glasses, mask, backpack, jewelry, weapons, pedestal, background, animation, or scene. Export as a single clean GLB model with simple materials.
+Create a cute stylized chibi full-body base character as a GLB model for an avatar customization system.
+
+The character must be completely bald, with a clean smooth head surface for attaching separate hair accessories. No hair, no bangs, no scalp hair, no beard, no mustache, no hat, no glasses, no mask, no jewelry, no backpack, no extra props.
+
+Style: cute stylized chibi mobile game character, large head, compact small body, soft rounded toy-like shapes, simple clean topology, smooth material.
+
+Technical: standing neutral A-pose, symmetrical, front facing +Z, feet on ground, origin centered between feet at ground level, total height around 1.8 to 2.0 units, neutral rotation, no animation, no pedestal, no display stand, no background, export as GLB.
 ```
 
-Prompt variants:
+Body variants:
 
 ```text
-female stylized low-poly 3D game character body, neutral A-pose, same scale and orientation as the base character, no accessories, GLB
+female cute stylized chibi full-body base character, completely bald smooth head, neutral A-pose, front facing +Z, same scale and orientation as the base character, no accessories, GLB
 ```
 
 ```text
-male stylized low-poly 3D game character body, neutral A-pose, same scale and orientation as the base character, no accessories, GLB
+male cute stylized chibi full-body base character, completely bald smooth head, neutral A-pose, front facing +Z, same scale and orientation as the base character, no accessories, GLB
+```
+
+## Accessory Prompt Template
+
+Use this template for all accessories before adding item-specific details.
+
+```text
+Create ONLY one standalone 3D accessory asset: [ACCESSORY_NAME].
+
+The output must contain only the accessory mesh itself.
+No character, no head, no face, no eyes, no nose, no ears, no body, no mannequin, no bust, no hands, no arms, no hair, no clothing unless the accessory is clothing, no display stand, no pedestal, no background, no extra props, no text, no logo.
+
+Style: cute stylized chibi mobile game asset, soft rounded toy-like shapes, simple clean topology, smooth material, mobile optimized.
+
+Technical: GLB format, single object where possible, centered at origin, front facing +Z, neutral rotation, pivot near the real attachment point, no animation. Do not place pivot far away from the object. Do not offset the mesh far from origin.
+
+Fit target: compatible with a chibi character around 1.8 to 2.0 units tall, large head and compact body proportions.
 ```
 
 ## Hair Prompt
@@ -62,7 +96,15 @@ male stylized low-poly 3D game character body, neutral A-pose, same scale and or
 Use for `assets/models/hair/`.
 
 ```text
-Create a stylized low-poly 3D hair accessory as a separate GLB model for a standard 1.8 unit character head. The hair must be centered around the head attachment area, facing forward, symmetrical, with pivot near the center of the head. Do not include head, face, body, hat, glasses, mask, background, animation, or pedestal. The model should be easy to place on top of a character head and should not extend too far below the ears.
+Create ONLY one standalone 3D accessory asset: chibi hair.
+
+The output must contain only the hair mesh itself. No character, no head, no face, no eyes, no ears, no body, no mannequin, no bust, no hat, no glasses, no mask, no display stand, no pedestal, no background, no extra props.
+
+Style: cute stylized chibi mobile game hair asset, soft rounded toy-like shapes, simple clean topology, smooth material, mobile optimized.
+
+Technical: GLB format, single object where possible, centered at origin, front facing +Z, neutral rotation, pivot near the center/top of the head attachment area, no animation. Do not place pivot far away from the object. Do not offset the mesh far from origin.
+
+Fit target: compatible with a bald chibi character around 1.8 to 2.0 units tall, large head and compact body proportions. The hair should sit on top of the head and should not extend too far below the ears.
 ```
 
 ## Hat Prompt
@@ -70,17 +112,25 @@ Create a stylized low-poly 3D hair accessory as a separate GLB model for a stand
 Use for `assets/models/hats/`.
 
 ```text
-Create a stylized low-poly 3D hat accessory as a separate GLB model for a standard 1.8 unit character head. The hat must face forward, be symmetrical, and have its pivot centered near the head top. Do not include head, hair, face, body, background, animation, or pedestal. The hat should fit over a standard character head and be slightly larger than the head width.
+Create ONLY one standalone 3D accessory asset: [hat name].
+
+The output must contain only the hat mesh itself. No character, no head, no face, no hair, no body, no mannequin, no bust, no display stand, no pedestal, no background, no extra props.
+
+Style: cute stylized chibi mobile game hat asset, soft rounded toy-like shapes, simple clean topology, smooth material, mobile optimized.
+
+Technical: GLB format, single object where possible, centered at origin, front facing +Z, neutral rotation, pivot near the center of the head-top attachment area, no animation. Do not place pivot far away from the object. Do not offset the mesh far from origin.
+
+Fit target: compatible with a chibi character around 1.8 to 2.0 units tall, large head and compact body proportions. The hat should fit over a bald chibi head and be slightly larger than head width.
 ```
 
-Prompt variants:
+Hat variants:
 
 ```text
-stylized low-poly beanie hat accessory only, separate GLB model, front-facing, centered pivot, no head, no body
+Create ONLY one standalone 3D accessory asset: cute chibi beanie hat. The output must contain only the beanie hat mesh itself. No head, no hair, no body, no mannequin, no pedestal. Front facing +Z, centered at origin, pivot near head-top attachment point, GLB.
 ```
 
 ```text
-stylized low-poly bucket hat accessory only, separate GLB model, front-facing, centered pivot, no head, no body
+Create ONLY one standalone 3D accessory asset: cute chibi bucket hat. The output must contain only the bucket hat mesh itself. No head, no hair, no body, no mannequin, no pedestal. Front facing +Z, centered at origin, pivot near head-top attachment point, GLB.
 ```
 
 ## Glasses Prompt
@@ -88,17 +138,25 @@ stylized low-poly bucket hat accessory only, separate GLB model, front-facing, c
 Use for `assets/models/glasses/`.
 
 ```text
-Create a stylized low-poly 3D glasses accessory as a separate GLB model for a standard character face. The glasses must face forward, be symmetrical, and have the pivot centered between the lenses. Do not include head, eyes, face, body, hair, hat, mask, background, animation, or pedestal. The glasses should be sized for a standard 1.8 unit character and easy to place on the face.
+Create ONLY one standalone 3D accessory asset: [glasses name].
+
+The output must contain only the glasses mesh itself. No character, no head, no face, no eyes, no nose, no ears, no body, no mannequin, no bust, no display stand, no pedestal, no background, no extra props.
+
+Style: cute stylized chibi mobile game glasses asset, soft rounded toy-like shapes, simple clean topology, smooth material, mobile optimized.
+
+Technical: GLB format, single object where possible, centered at origin, front facing +Z, neutral rotation, pivot centered between the lenses, no animation. Do not place pivot far away from the object. Do not offset the mesh far from origin.
+
+Fit target: compatible with a chibi character around 1.8 to 2.0 units tall, large head and compact body proportions.
 ```
 
-Prompt variants:
+Glasses variants:
 
 ```text
-stylized cyber visor accessory only, separate GLB model, front-facing, centered, no head, no face, no body
+Create ONLY one standalone 3D accessory asset: cute chibi cyber visor. The output must contain only the visor mesh itself. No head, no face, no eyes, no body, no mannequin, no pedestal. Front facing +Z, centered at origin, pivot centered between the lenses, GLB.
 ```
 
 ```text
-stylized round glasses accessory only, separate GLB model, front-facing, centered, no head, no face, no body
+Create ONLY one standalone 3D accessory asset: cute chibi round glasses. The output must contain only the glasses mesh itself. No head, no face, no eyes, no body, no mannequin, no pedestal. Front facing +Z, centered at origin, pivot centered between the lenses, GLB.
 ```
 
 ## Mask Prompt
@@ -106,17 +164,25 @@ stylized round glasses accessory only, separate GLB model, front-facing, centere
 Use for `assets/models/masks/`.
 
 ```text
-Create a stylized low-poly 3D face mask accessory as a separate GLB model for a standard character face. The mask must face forward, be symmetrical, and have the pivot centered near the mouth and nose area. Do not include head, face, body, hair, hat, glasses, background, animation, or pedestal. The mask should fit the lower half of a standard character face.
+Create ONLY one standalone 3D accessory asset: [mask name].
+
+The output must contain only the mask mesh itself. No character, no head, no face, no eyes, no nose, no ears, no body, no mannequin, no bust, no display stand, no pedestal, no background, no extra props.
+
+Style: cute stylized chibi mobile game face mask asset, soft rounded toy-like shapes, simple clean topology, smooth material, mobile optimized.
+
+Technical: GLB format, single object where possible, centered at origin, front facing +Z, neutral rotation, pivot centered near the mouth and nose attachment area, no animation. Do not place pivot far away from the object. Do not offset the mesh far from origin.
+
+Fit target: compatible with a chibi character around 1.8 to 2.0 units tall, large head and compact body proportions. The mask should fit the lower half of a chibi face.
 ```
 
-Prompt variants:
+Mask variants:
 
 ```text
-stylized low-poly medical face mask accessory only, separate GLB model, front-facing, centered, no head, no body
+Create ONLY one standalone 3D accessory asset: cute chibi medical face mask. The output must contain only the mask mesh itself. No head, no face, no body, no mannequin, no pedestal. Front facing +Z, centered at origin, pivot near mouth and nose attachment area, GLB.
 ```
 
 ```text
-stylized low-poly ninja face mask accessory only, separate GLB model, front-facing, centered, no head, no body
+Create ONLY one standalone 3D accessory asset: cute chibi ninja face mask. The output must contain only the mask mesh itself. No head, no face, no body, no mannequin, no pedestal. Front facing +Z, centered at origin, pivot near mouth and nose attachment area, GLB.
 ```
 
 ## Backpack Prompt
@@ -124,7 +190,15 @@ stylized low-poly ninja face mask accessory only, separate GLB model, front-faci
 Use for `assets/models/others/mini_backpack.glb` or move later to `assets/models/back/`.
 
 ```text
-Create a stylized low-poly 3D mini backpack accessory as a separate GLB model for the back of a standard 1.8 unit character. The backpack must face backward relative to the character, be symmetrical, and have the pivot centered on the attachment point on the upper back. Do not include body, arms, head, straps merged with a character, background, animation, or pedestal. The backpack should sit close to the character's back.
+Create ONLY one standalone 3D accessory asset: cute chibi mini backpack.
+
+The output must contain only the backpack mesh itself. No character, no body, no arms, no hands, no head, no mannequin, no bust, no display stand, no pedestal, no background, no extra props.
+
+Style: cute stylized chibi mobile game backpack asset, soft rounded toy-like shapes, simple clean topology, smooth material, mobile optimized.
+
+Technical: GLB format, single object where possible, centered at origin, neutral rotation, pivot centered on the upper-back attachment point, no animation. Do not place pivot far away from the object. Do not offset the mesh far from origin.
+
+Fit target: compatible with the back of a chibi character around 1.8 to 2.0 units tall, large head and compact body proportions. The backpack should sit close to the character back.
 ```
 
 ## Bracelet Prompt
@@ -132,30 +206,41 @@ Create a stylized low-poly 3D mini backpack accessory as a separate GLB model fo
 Use for `assets/models/others/bracelet.glb` or move later to `assets/models/wrist/`.
 
 ```text
-Create a stylized low-poly 3D bracelet accessory as a separate GLB model for a standard character wrist. The bracelet must be centered around the wrist attachment point, with a clean circular shape and simple material. Do not include hand, arm, body, background, animation, or pedestal. The bracelet should be small and easy to place on either wrist.
+Create ONLY one standalone 3D accessory asset: cute chibi bracelet.
+
+The output must contain only the bracelet mesh itself. No character, no hand, no arm, no body, no mannequin, no bust, no display stand, no pedestal, no background, no extra props.
+
+Style: cute stylized chibi mobile game bracelet asset, soft rounded toy-like shapes, simple clean topology, smooth material, mobile optimized.
+
+Technical: GLB format, single object where possible, centered at origin, neutral rotation, pivot centered in the bracelet hole at the wrist attachment point, no animation. Do not place pivot far away from the object. Do not offset the mesh far from origin.
+
+Fit target: compatible with a chibi character wrist, around 1.8 to 2.0 units tall character scale. The bracelet should be small and easy to place on either wrist.
 ```
 
 ## Recommended Generation Workflow
 
-1. Generate one approved `base_character` first.
+1. Generate one approved bald `base_character` first.
 2. Use that body as the visual reference for every later body and accessory.
-3. Generate all new body models with the same pose, scale, orientation, and origin.
-4. Generate accessories as accessory-only GLB files, never merged with a character.
+3. Generate all new body models with the same pose, scale, orientation, origin, and bald smooth head.
+4. Generate accessories as accessory-only GLB files, never merged with a character/head/body.
 5. Import each GLB into the app.
-6. Add it to `accessory_mock_data.dart` or `character_object_mock_data.dart`.
-7. If it does not fit every body, add a `characterTransforms` override for that body.
-8. If the transform override is extreme, regenerate the model with a stricter prompt instead of forcing it in code.
+6. Add body models to `character_object_mock_data.dart`.
+7. Add accessories to `accessory_mock_data.dart`.
+8. If the accessory is slightly off, add a `characterTransforms` override for that body.
+9. If the transform override is extreme, regenerate the model with a stricter prompt.
 
 ## When To Regenerate Vs. Tune In Code
 
 Regenerate the model if:
 
-- it faces the wrong direction
-- it has a different pose from other bodies
-- it includes a pedestal, scene, or background mesh
-- accessory includes head/body geometry
+- body is not bald
+- body includes hair, beard, hat, glasses, mask, backpack, or jewelry
+- accessory includes head, face, body, mannequin, bust, hand, arm, pedestal, or background
+- model faces the wrong direction
+- model has a different pose from other bodies
 - model is wildly oversized or undersized
 - pivot is far away from the actual object
+- mesh is offset far from origin
 
 Tune in `accessory_mock_data.dart` if:
 
