@@ -61,6 +61,10 @@ class Local3DAssetServer {
       return 'assets/web/character_viewer.html';
     }
 
+    if (path == '/character_room_viewer.html') {
+      return 'assets/web/character_room_viewer.html';
+    }
+
     if (path.startsWith('/models/') && !path.contains('..')) {
       return 'assets$path';
     }

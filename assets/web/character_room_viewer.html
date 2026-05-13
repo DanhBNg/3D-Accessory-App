@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Character Room Viewer</title>
+  <style>
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: transparent;
+      font-family: Arial, sans-serif;
+    }
+
+    #canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    #status {
+      position: fixed;
+      left: 0;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      color: rgba(255,255,255,0.75);
+      text-align: center;
+      font-size: 14px;
+      white-space: pre-line;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+  <div id="status">Loading room...</div>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/"
+      }
+    }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    let scene;
+    let camera;
+    let renderer;
+    let controls;
+    let loader;
+    let roomModel;
+    let characterModel;
+    let mixer;
+    let clock;
+
+    const canvas = document.getElementById('canvas');
+    const status = document.getElementById('status');
+
+    const CHARACTER_URLS = {
+      female: '/models/characters_full/female_full.glb',
+      male: '/models/characters_full/male_full.glb'
+    };
+    const CHARACTER_FLOOR_OFFSET = -0.08;
+
+    init();
+    animate();
+
+    async function init() {
+      scene = new THREE.Scene();
+      clock = new THREE.Clock();
+      loader = new GLTFLoader();
+
+      camera = new THREE.PerspectiveCamera(
+        42,
+        window.innerWidth / window.innerHeight,
+        0.01,
+        200
+      );
+      camera.position.set(0, 1.45, 4.2);
+
+      renderer = new THREE.WebGLRenderer({
+        canvas,
+        alpha: true,
+        antialias: true
+      });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+      const ambientLight = new THREE.AmbientLight(0xffffff, 1.6);
+      scene.add(ambientLight);
+
+      const keyLight = new THREE.DirectionalLight(0xffffff, 2.8);
+      keyLight.position.set(3, 5, 4);
+      keyLight.castShadow = true;
+      scene.add(keyLight);
+
+      const fillLight = new THREE.DirectionalLight(0x8b5cf6, 1.1);
+      fillLight.position.set(-3, 2, 3);
+      scene.add(fillLight);
+
+      controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.enablePan = false;
+      controls.minDistance = 2.0;
+      controls.maxDistance = 7.0;
+      controls.target.set(0, 0.9, 0);
+      controls.update();
+
+      window.addEventListener('resize', onResize);
+
+      try {
+        await loadRoom();
+        await setCharacter('female');
+        status.style.display = 'none';
+      } catch (error) {
+        console.error(error);
+        status.style.display = 'block';
+        status.innerText = 'Cannot load character room:\n' + (error?.message || error);
+      }
+    }
+
+    async function loadRoom() {
+      const gltf = await loader.loadAsync('/models/room/room_default.glb');
+      roomModel = gltf.scene;
+      roomModel.name = 'room';
+      prepareObject(roomModel);
+      scene.add(roomModel);
+      fitRoomToView();
+    }
+
+    async function setCharacter(characterId) {
+      const url = CHARACTER_URLS[characterId] || CHARACTER_URLS.female;
+      status.style.display = 'block';
+      status.innerText = 'Loading ' + characterId + '...';
+
+      removeCharacter();
+
+      const gltf = await loader.loadAsync(url);
+      characterModel = gltf.scene;
+      characterModel.name = characterId;
+      prepareObject(characterModel);
+
+      normalizeCharacter(characterModel);
+      scene.add(characterModel);
+
+      mixer = gltf.animations?.length
+        ? new THREE.AnimationMixer(characterModel)
+        : null;
+
+      if (mixer && gltf.animations.length > 0) {
+        const idleClip = gltf.animations.find((clip) =>
+          clip.name.toLowerCase().includes('idle')
+        ) || gltf.animations[0];
+        mixer.clipAction(idleClip).play();
+      }
+
+      status.style.display = 'none';
+    }
+
+    function removeCharacter() {
+      mixer = null;
+
+      if (!characterModel) return;
+      scene.remove(characterModel);
+      disposeObject(characterModel);
+      characterModel = null;
+    }
+
+    function prepareObject(object) {
+      object.traverse((child) => {
+        if (child.isMesh) {
+          child.castShadow = true;
+          child.receiveShadow = true;
+          child.frustumCulled = false;
+          if (child.material) {
+            child.material.needsUpdate = true;
+          }
+        }
+      });
+    }
+
+    function normalizeCharacter(object) {
+      object.position.set(0, 0, 0);
+      object.rotation.set(0, 0, 0);
+      object.scale.set(1, 1, 1);
+
+      const box = new THREE.Box3().setFromObject(object);
+      const size = box.getSize(new THREE.Vector3());
+      const center = box.getCenter(new THREE.Vector3());
+      const targetHeight = 1.65;
+      const scale = size.y > 0 ? targetHeight / size.y : 1;
+
+      object.scale.setScalar(scale);
+
+      const scaledBox = new THREE.Box3().setFromObject(object);
+      const scaledCenter = scaledBox.getCenter(new THREE.Vector3());
+      const scaledMin = scaledBox.min;
+
+      object.position.x -= scaledCenter.x;
+      object.position.y -= scaledMin.y;
+      object.position.y += CHARACTER_FLOOR_OFFSET;
+      object.position.z -= scaledCenter.z;
+    }
+
+    function fitRoomToView() {
+      if (!roomModel) return;
+
+      const box = new THREE.Box3().setFromObject(roomModel);
+      if (box.isEmpty()) return;
+
+      const center = box.getCenter(new THREE.Vector3());
+      const size = box.getSize(new THREE.Vector3());
+      const maxSize = Math.max(size.x, size.y, size.z);
+      const distance = Math.max(maxSize * 0.9, 4.0);
+
+      controls.target.set(center.x, Math.max(center.y, 0.9), center.z);
+      camera.position.set(center.x, Math.max(center.y + 1.0, 1.35), center.z + distance);
+      camera.near = 0.01;
+      camera.far = Math.max(200, distance * 10);
+      camera.updateProjectionMatrix();
+      controls.update();
+    }
+
+    function disposeObject(object) {
+      object.traverse((child) => {
+        if (!child.isMesh) return;
+        child.geometry?.dispose?.();
+        if (Array.isArray(child.material)) {
+          child.material.forEach((material) => material.dispose?.());
+        } else {
+          child.material?.dispose?.();
+        }
+      });
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const delta = clock ? clock.getDelta() : 0;
+      if (mixer) mixer.update(delta);
+      if (controls) controls.update();
+      renderer.render(scene, camera);
+    }
+
+    function onResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    window.setCharacter = function(characterId) {
+      setCharacter(characterId).catch((error) => {
+        console.error(error);
+        status.style.display = 'block';
+        status.innerText = 'Cannot switch character:\n' + (error?.message || error);
+      });
+    };
+  </script>
+</body>
+</html>

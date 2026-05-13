@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/gradient_action_button.dart';
 import '../../../character_3d/presentation/screens/character_3d_demo_screen.dart';
+import '../../../character_room/presentation/screens/character_room_screen.dart';
 import '../../data/vfx_mock_data.dart';
 import '../widgets/hover_video_card.dart';
 import 'vfx_generator_screen.dart';
@@ -85,6 +86,22 @@ class LandingScreen extends StatelessWidget {
                     context,
                     MaterialPageRoute(
                       builder: (context) => const Character3DDemoScreen(),
+                    ),
+                  );
+                },
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: GradientActionButton(
+                label: 'Open Character Room',
+                icon: Icons.meeting_room,
+                colors: const [AppColors.secondary, AppColors.primary],
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const CharacterRoomScreen(),
                     ),
                   );
                 },

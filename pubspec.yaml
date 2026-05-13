@@ -39,3 +39,5 @@ flutter:
     - assets/thumbnails/glasses/
     - assets/thumbnails/masks/
     - assets/thumbnails/outfits/
+    - assets/models/room/
+    - assets/models/characters_full/
