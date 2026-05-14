@@ -15,13 +15,28 @@ class _CharacterRoomScreenState extends State<CharacterRoomScreen> {
   final _assetServer = Local3DAssetServer();
   late final WebViewController _controller;
 
-  String selectedCharacter = 'female';
+  String selectedCharacter = 'character1';
+  String selectedAnimation = 'idle';
   bool isViewerLoading = true;
   String? viewerError;
 
   static const characters = [
-    _RoomCharacter(id: 'female', label: 'Female'),
-    _RoomCharacter(id: 'male', label: 'Male'),
+    _RoomCharacter(id: 'character1', label: 'Character 1'),
+    _RoomCharacter(id: 'character2', label: 'Character 2'),
+  ];
+
+  static const animations = [
+    _RoomAnimation(id: 'idle', label: 'Idle', url: ''),
+    _RoomAnimation(
+      id: 'jumping_down',
+      label: 'Jumping Down',
+      url: '/models/animations/jumping_down.glb',
+    ),
+    _RoomAnimation(
+      id: 'spin',
+      label: 'Spin',
+      url: '/models/animations/spin_act.glb',
+    ),
   ];
 
   @override
@@ -79,6 +94,24 @@ class _CharacterRoomScreenState extends State<CharacterRoomScreen> {
   Future<void> _selectCharacter(String characterId) async {
     setState(() => selectedCharacter = characterId);
     await _controller.runJavaScript('setCharacter("$characterId");');
+
+    // When switching character, re-apply the selected animation
+    final animUrl = animations.firstWhere((a) => a.id == selectedAnimation).url;
+    if (animUrl.isNotEmpty) {
+      // Need a slight delay to let character load, but in reality we should await the JS promise.
+      // Since runJavaScript returns immediately, we use a small delay for now.
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted) {
+          _controller.runJavaScript('playExternalAnimation("$animUrl");');
+        }
+      });
+    }
+  }
+
+  Future<void> _selectAnimation(String animationId) async {
+    setState(() => selectedAnimation = animationId);
+    final animUrl = animations.firstWhere((a) => a.id == animationId).url;
+    await _controller.runJavaScript('playExternalAnimation("$animUrl");');
   }
 
   Future<void> _resetCamera() async {
@@ -188,8 +221,12 @@ class _CharacterRoomScreenState extends State<CharacterRoomScreen> {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(24, 18, 24, 24),
+              padding: const EdgeInsets.fromLTRB(24, 18, 24, 0),
               child: _buildCharacterSelector(),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 18, 24, 24),
+              child: _buildAnimationSelector(),
             ),
           ],
         ),
@@ -238,6 +275,48 @@ class _CharacterRoomScreenState extends State<CharacterRoomScreen> {
       ],
     );
   }
+
+  Widget _buildAnimationSelector() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Action',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 10),
+        SizedBox(
+          height: 42,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: animations.length,
+            separatorBuilder: (_, _) => const SizedBox(width: 8),
+            itemBuilder: (context, index) {
+              final animation = animations[index];
+              final selected = animation.id == selectedAnimation;
+
+              return ChoiceChip(
+                label: Text(animation.label),
+                selected: selected,
+                onSelected: (_) => _selectAnimation(animation.id),
+                selectedColor: AppColors.secondary,
+                backgroundColor: Colors.white.withValues(alpha: 0.06),
+                labelStyle: TextStyle(
+                  color: selected ? Colors.black : Colors.white70,
+                  fontWeight: FontWeight.w600,
+                ),
+                side: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 class _RoomCharacter {
@@ -245,4 +324,16 @@ class _RoomCharacter {
   final String label;
 
   const _RoomCharacter({required this.id, required this.label});
+}
+
+class _RoomAnimation {
+  final String id;
+  final String label;
+  final String url;
+
+  const _RoomAnimation({
+    required this.id,
+    required this.label,
+    required this.url,
+  });
 }

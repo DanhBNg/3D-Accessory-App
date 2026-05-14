@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Character Room Viewer</title>
   <style>
-    html, body {
+    html,
+    body {
       width: 100%;
       height: 100%;
       margin: 0;
@@ -26,7 +28,7 @@
       right: 0;
       top: 50%;
       transform: translateY(-50%);
-      color: rgba(255,255,255,0.75);
+      color: rgba(255, 255, 255, 0.75);
       text-align: center;
       font-size: 14px;
       white-space: pre-line;
@@ -34,6 +36,7 @@
     }
   </style>
 </head>
+
 <body>
   <canvas id="canvas"></canvas>
   <div id="status">Loading room...</div>
@@ -61,15 +64,21 @@
     let characterModel;
     let mixer;
     let clock;
+    let currentAction;
+    let defaultIdleAction;
+    let statusTimer;
+    let characterAnimationClips = [];
+    let characterFloorY;
+    const characterFloorBox = new THREE.Box3();
 
     const canvas = document.getElementById('canvas');
     const status = document.getElementById('status');
 
     const CHARACTER_URLS = {
-      female: '/models/characters_full/female_full.glb',
-      male: '/models/characters_full/male_full.glb'
+      character1: '/models/characters_rigged/character_1.glb',
+      character2: '/models/characters_rigged/character_2.glb'
     };
-    const CHARACTER_FLOOR_OFFSET = -0.08;
+    const CHARACTER_FLOOR_OFFSET = -0.48;
 
     init();
     animate();
@@ -122,7 +131,7 @@
 
       try {
         await loadRoom();
-        await setCharacter('female');
+        await setCharacter('character1');
         status.style.display = 'none';
       } catch (error) {
         console.error(error);
@@ -141,7 +150,7 @@
     }
 
     async function setCharacter(characterId) {
-      const url = CHARACTER_URLS[characterId] || CHARACTER_URLS.female;
+      const url = CHARACTER_URLS[characterId] || CHARACTER_URLS.character1;
       status.style.display = 'block';
       status.innerText = 'Loading ' + characterId + '...';
 
@@ -150,27 +159,211 @@
       const gltf = await loader.loadAsync(url);
       characterModel = gltf.scene;
       characterModel.name = characterId;
+      characterAnimationClips = gltf.animations || [];
       prepareObject(characterModel);
 
       normalizeCharacter(characterModel);
+      characterFloorY = characterModel.position.y;
       scene.add(characterModel);
 
-      mixer = gltf.animations?.length
-        ? new THREE.AnimationMixer(characterModel)
-        : null;
+      mixer = new THREE.AnimationMixer(characterModel);
 
-      if (mixer && gltf.animations.length > 0) {
+      if (gltf.animations?.length > 0) {
         const idleClip = gltf.animations.find((clip) =>
           clip.name.toLowerCase().includes('idle')
-        ) || gltf.animations[0];
-        mixer.clipAction(idleClip).play();
+        );
+        if (!idleClip) {
+          defaultIdleAction = null;
+          currentAction = null;
+          status.style.display = 'none';
+          return;
+        }
+
+        defaultIdleAction = mixer.clipAction(idleClip);
+        defaultIdleAction.play();
+        currentAction = defaultIdleAction;
+      } else {
+        defaultIdleAction = null;
+        currentAction = null;
       }
 
       status.style.display = 'none';
     }
 
+    async function playExternalAnimation(url) {
+      if (!characterModel) return;
+      if (!mixer) mixer = new THREE.AnimationMixer(characterModel);
+
+      let nextAction;
+      if (!url || url === '') {
+        if (defaultIdleAction) {
+          nextAction = defaultIdleAction;
+        } else {
+          if (currentAction) {
+            const actionToStop = currentAction;
+            actionToStop.fadeOut(0.3);
+            window.setTimeout(() => {
+              actionToStop.stop();
+            }, 320);
+            currentAction = null;
+          }
+          return;
+        }
+      } else {
+        try {
+          let clip = characterAnimationClips[0];
+          if (!Object.values(CHARACTER_URLS).includes(url) || !clip) {
+            const gltf = await loader.loadAsync(url);
+            if (!gltf.animations?.length) return;
+            clip = gltf.animations[0];
+          }
+          clip = createCharacterClip(clip, characterModel);
+          const missingTargets = getMissingAnimationTargets(clip, characterModel);
+          if (missingTargets.length > 0) {
+            console.warn(
+              'Animation cannot drive this character. Missing targets:',
+              missingTargets
+            );
+            showTemporaryStatus(
+              'This character is not rigged for this animation.'
+            );
+            return;
+          }
+          nextAction = mixer.clipAction(clip);
+        } catch (error) {
+          console.error("Failed to load animation:", error);
+          return;
+        }
+      }
+
+      if (nextAction && nextAction !== currentAction) {
+        resetCharacterFloorPosition();
+        nextAction.reset();
+        nextAction.play();
+        if (currentAction) {
+          currentAction.crossFadeTo(nextAction, 0.3, true);
+        }
+        currentAction = nextAction;
+      }
+    }
+
+    function resetCharacterFloorPosition() {
+      if (!characterModel) return;
+      characterModel.position.y = characterFloorY;
+    }
+
+    function createCharacterClip(clip, targetRoot) {
+      const tracks = clip.tracks.map((track) => {
+        const binding = THREE.PropertyBinding.parseTrackName(track.name);
+        const targetName = binding.nodeName || '';
+        const targetObject = findAnimationTarget(targetRoot, targetName);
+        const mappedTrack = targetObject && targetObject.name !== targetName
+          ? cloneTrackForTarget(track, targetName, targetObject.name)
+          : track;
+
+        return createGroundedTrack(mappedTrack, targetRoot);
+      });
+
+      return new THREE.AnimationClip(`${clip.name || 'animation'}_character`, clip.duration, tracks);
+    }
+
+    function findAnimationTarget(targetRoot, targetName) {
+      if (!targetName || targetName === '.') return null;
+
+      const directTarget = targetRoot.getObjectByName(targetName);
+      if (directTarget) return directTarget;
+
+      const alternateName = targetName.startsWith('mixamorig_')
+        ? targetName.replace('mixamorig_', 'mixamorig')
+        : targetName.replace('mixamorig', 'mixamorig_');
+
+      return alternateName !== targetName
+        ? targetRoot.getObjectByName(alternateName)
+        : null;
+    }
+
+    function cloneTrackForTarget(track, sourceName, targetName) {
+      const trackName = track.name.replace(sourceName, targetName);
+
+      if (track.ValueTypeName === 'quaternion') {
+        return new THREE.QuaternionKeyframeTrack(
+          trackName,
+          track.times.slice(),
+          track.values.slice(),
+          track.getInterpolation()
+        );
+      }
+
+      return new THREE.VectorKeyframeTrack(
+        trackName,
+        track.times.slice(),
+        track.values.slice(),
+        track.getInterpolation()
+      );
+    }
+
+    function createGroundedTrack(track, targetRoot) {
+        const binding = THREE.PropertyBinding.parseTrackName(track.name);
+        const targetName = binding.nodeName || '';
+        const propertyName = binding.propertyName || '';
+        const isRootVerticalTrack =
+          propertyName === 'position' &&
+          /(hips|root)$/i.test(targetName);
+
+        if (!isRootVerticalTrack) return track;
+
+        const groundedValues = track.values.slice();
+        const targetObject = targetRoot.getObjectByName(targetName);
+        const groundedY = targetObject ? targetObject.position.y : groundedValues[1];
+
+        for (let i = 1; i < groundedValues.length; i += 3) {
+          groundedValues[i] = groundedY;
+        }
+
+        return new THREE.VectorKeyframeTrack(
+          track.name,
+          track.times.slice(),
+          groundedValues,
+          track.getInterpolation()
+        );
+    }
+
+    function keepCharacterOnFloor() {
+      if (!characterModel) return;
+
+      characterModel.updateMatrixWorld(true);
+      characterFloorBox.setFromObject(characterModel);
+      if (characterFloorBox.isEmpty()) return;
+
+      characterModel.position.y += CHARACTER_FLOOR_OFFSET - characterFloorBox.min.y;
+    }
+
+    function getMissingAnimationTargets(clip, targetRoot) {
+      const missing = new Set();
+
+      for (const track of clip.tracks) {
+        const targetName = THREE.PropertyBinding.parseTrackName(track.name).nodeName;
+        if (!targetName || targetName === '.') continue;
+        if (!findAnimationTarget(targetRoot, targetName)) {
+          missing.add(targetName);
+        }
+      }
+
+      return Array.from(missing);
+    }
+
+    function showTemporaryStatus(message) {
+      window.clearTimeout(statusTimer);
+      status.style.display = 'block';
+      status.innerText = message;
+      statusTimer = window.setTimeout(() => {
+        status.style.display = 'none';
+      }, 2500);
+    }
+
     function removeCharacter() {
       mixer = null;
+      characterAnimationClips = [];
 
       if (!characterModel) return;
       scene.remove(characterModel);
@@ -248,7 +441,10 @@
     function animate() {
       requestAnimationFrame(animate);
       const delta = clock ? clock.getDelta() : 0;
-      if (mixer) mixer.update(delta);
+      if (mixer) {
+        mixer.update(delta);
+        keepCharacterOnFloor();
+      }
       if (controls) controls.update();
       renderer.render(scene, camera);
     }
@@ -259,13 +455,18 @@
       renderer.setSize(window.innerWidth, window.innerHeight);
     }
 
-    window.setCharacter = function(characterId) {
+    window.setCharacter = function (characterId) {
       setCharacter(characterId).catch((error) => {
         console.error(error);
         status.style.display = 'block';
         status.innerText = 'Cannot switch character:\n' + (error?.message || error);
       });
     };
+
+    window.playExternalAnimation = function (url) {
+      playExternalAnimation(url);
+    };
   </script>
 </body>
+
 </html>

@@ -22,26 +22,4 @@ const List<Character3DObject> characterObjects = [
       AccessorySlot.glasses: 'glassy_round',
     },
   ),
-  Character3DObject(
-    id: 'female_body_2',
-    name: 'Female 2',
-    modelPath: 'assets/models/character/female_body_2.glb',
-    viewerPath: '/models/character/female_body_2.glb',
-    defaultAccessoryIds: {
-      AccessorySlot.hair: 'hair_style_1',
-      AccessorySlot.hat: 'beanie_hat',
-      AccessorySlot.mask: 'medical_mask',
-    },
-  ),
-  Character3DObject(
-    id: 'male_body_2',
-    name: 'Male 2',
-    modelPath: 'assets/models/character/male_body_2.glb',
-    viewerPath: '/models/character/male_body_2.glb',
-    defaultAccessoryIds: {
-      AccessorySlot.hat: 'bucket_hat',
-      AccessorySlot.back: 'mini_backpack',
-      AccessorySlot.wrist: 'bracelet',
-    },
-  ),
 ];

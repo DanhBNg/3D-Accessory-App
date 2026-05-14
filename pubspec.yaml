@@ -27,9 +27,12 @@ flutter:
   uses-material-design: true
   assets:
     - assets/web/
-    - assets/models/character/
-    - assets/models/hair/
-    - assets/models/hats/
+    - assets/models/character/base_character.glb
+    - assets/models/character/female_body_1.glb
+    - assets/models/characters_rigged/
+    - assets/models/hair/hair_style_1.glb
+    - assets/models/hats/bucket_hat.glb
+    - assets/models/hats/hat_style_1.glb
     - assets/models/glasses/
     - assets/models/masks/
     - assets/models/outfits/
@@ -40,4 +43,4 @@ flutter:
     - assets/thumbnails/masks/
     - assets/thumbnails/outfits/
     - assets/models/room/
-    - assets/models/characters_full/
+    - assets/models/animations/
