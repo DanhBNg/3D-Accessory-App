@@ -24,15 +24,9 @@ assets/
       room_default.glb
 
     hair/
-      hair_style_1.glb
-
     hats/
-      bucket_hat.glb
-      hat_style_1.glb
-
     glasses/
     masks/
-    outfits/
     others/
 
   thumbnails/
@@ -40,45 +34,66 @@ assets/
     hats/
     glasses/
     masks/
-    outfits/
 ```
 
-## Current `pubspec.yaml` Strategy
+## Current Bundle Strategy
 
-Use explicit files for large model folders when possible.
+`pubspec.yaml` currently bundles local assets. This is convenient for offline demos but makes APKs large.
 
-Current important entries:
+Keep only directories that actually contain files. Empty asset directories can break future builds if the placeholder file is removed.
 
-```yaml
-flutter:
-  assets:
-    - assets/web/
-    - assets/models/characters_rigged/
-    - assets/models/room/
-    - assets/models/animations/
+## Lightest APK Strategy
+
+For the smallest APK, move large GLBs to CDN:
+
+```text
+CDN:
+  models/characters_rigged/*.glb
+  models/animations/*.glb
+  models/room/*.glb
+  models/hair|hats|glasses|masks|others/*.glb
+
+APK:
+  assets/web/
+  small config JSON if needed
 ```
 
-Avoid adding an entire directory if it contains unused heavy files such as `.model`, source exports, or old test GLBs.
+Then remove large asset folders from `pubspec.yaml`.
+
+Recommended CDN requirements:
+
+- public HTTPS URLs
+- CORS enabled for `GET` and `HEAD`
+- stable paths matching the app config
+- cache headers for large immutable GLBs
+
+Example CDN URL:
+
+```text
+https://cdn.example.com/models/characters_rigged/character_1.glb
+```
 
 ## Local WebView Asset Loading
 
-The HTML viewers cannot load Flutter asset paths directly.
-
-The app uses `Local3DAssetServer`:
+When assets are bundled locally, HTML uses local server paths:
 
 ```text
 HTML URL:    /models/characters_rigged/character_1.glb
 Flutter map: assets/models/characters_rigged/character_1.glb
 ```
 
-Any file under `/models/...` is mapped to `assets/models/...` by the local HTTP server.
+This mapping lives in:
 
-## Adding A Rigged Character For The Room
+```text
+lib/features/character_3d/web/local_3d_server.dart
+```
+
+## Adding A Rigged Character
 
 1. Add the GLB:
 
 ```text
-assets/models/characters_rigged/character_3.glb
+assets/models/characters_rigged/character_4.glb
 ```
 
 2. Confirm it has:
@@ -87,24 +102,17 @@ assets/models/characters_rigged/character_3.glb
 mesh
 skeleton/bones
 skin weights
-materials/textures if color is needed
+materials/textures if color matters
 ```
 
-3. Add it to `CHARACTER_URLS` in:
+3. Add it to the relevant config:
 
-```text
-assets/web/character_room_viewer.html
-```
+- `character_3d`: `character_object_mock_data.dart`
+- `character_room`: `CHARACTER_URLS` in `character_room_viewer.html` and chips in `CharacterRoomScreen`
 
-4. Add a matching chip in:
+## Adding An Animation
 
-```text
-lib/features/character_room/presentation/screens/character_room_screen.dart
-```
-
-## Adding An Animation For The Room
-
-1. Add the animation-only GLB:
+1. Add animation-only GLB:
 
 ```text
 assets/models/animations/new_action.glb
@@ -114,43 +122,20 @@ assets/models/animations/new_action.glb
 
 ```text
 animations: at least 1
-meshes: usually 0 for animation-only
-tracks target Mixamo bones
+meshes: usually 0
+tracks target Mixamo-compatible bones
 ```
 
-3. Add an action chip in:
+3. Add a chip in:
 
 ```text
 lib/features/character_room/presentation/screens/character_room_screen.dart
 ```
 
-4. Prefer in-place animation exports. If the animation moves vertically, the viewer currently tries to ground `Hips/Root` at the room floor offset.
-
-## Adding An Accessory
-
-1. Add the model:
-
-```text
-assets/models/hair/hair_style_2.glb
-```
-
-2. Add thumbnail if available:
-
-```text
-assets/thumbnails/hair/hair_style_2.png
-```
-
-3. Add the item to:
-
-```text
-lib/features/character_3d/data/accessory_mock_data.dart
-```
-
-4. If the HTML viewer needs a new model path, use `/models/...` URLs.
+Prefer in-place Mixamo exports. The room viewer also grounds `Hips/Root` as a fallback.
 
 ## Size Notes
 
-- Current rigged characters are large enough for GitHub to warn near or above 50 MB.
-- Use Git LFS if these files stay in the repository.
-- Remove unused GLBs from both `assets/models/` and `pubspec.yaml`.
-- Compress textures before GLB export for mobile APK size.
+- Git LFS helps repository health, but it does not reduce APK size.
+- CDN or lazy download is the main path to a small APK.
+- Texture size and mesh complexity are the main GLB size drivers.

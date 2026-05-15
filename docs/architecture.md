@@ -1,6 +1,8 @@
-# Kiến Trúc Và Cấu Trúc Thư Mục
+# Architecture
 
-## Cấu Trúc Chính
+The project uses a feature-first, clean-lite structure. It is still a local demo, so avoid adding repository/usecase/datasource layers until there is a real backend, API, inventory, or remote asset system.
+
+## Main Structure
 
 ```text
 lib/
@@ -12,86 +14,91 @@ lib/
 
   core/
     constants/
-      app_colors.dart
     widgets/
-      gradient_action_button.dart
 
   features/
     cinematic_vfx/
       data/
-        vfx_mock_data.dart
       presentation/
-        screens/
-          landing_screen.dart
-          vfx_generator_screen.dart
-        widgets/
-          hover_video_card.dart
 
     character_3d/
       data/
-        accessory_mock_data.dart
       domain/
-        entities/
-          accessory_item.dart
-          accessory_slot.dart
       presentation/
-        screens/
-          character_3d_demo_screen.dart
-        widgets/
-          accessory_category_tabs.dart
-          accessory_option_card.dart
-          part_switch.dart
       web/
-        local_3d_server.dart
+
+    character_room/
+      presentation/
 ```
 
-## Vai Trò Từng Khu Vực
+## App Layer
 
-### `lib/main.dart`
+`lib/app/` owns app-level setup:
 
-Chỉ là entrypoint:
+- `cinematic_app.dart`: `MaterialApp`, routes/home, title, theme hookup.
+- `app_theme.dart`: shared theme.
 
-```dart
-void main() {
-  runApp(const CinematicApp());
-}
+Keep feature logic out of this layer.
+
+## Core Layer
+
+`lib/core/` is for shared constants/widgets only. Do not place feature-specific viewer, asset, or animation logic here.
+
+## Cinematic VFX
+
+`features/cinematic_vfx/` is currently a mock UI flow:
+
+- preset data
+- landing screen
+- generator screen
+- video preview cards
+
+No domain layer is needed yet.
+
+## Character 3D
+
+`features/character_3d/` previews rigged character GLBs and optional accessory overlays.
+
+Important files:
+
+```text
+lib/features/character_3d/data/character_object_mock_data.dart
+lib/features/character_3d/data/accessory_mock_data.dart
+lib/features/character_3d/presentation/screens/character_3d_demo_screen.dart
+lib/features/character_3d/web/local_3d_server.dart
+assets/web/character_viewer.html
 ```
 
-Không đặt UI, mock data, server hoặc business logic trong file này.
+The WebView cannot load Flutter assets directly. The local HTTP server maps:
 
-### `lib/app/`
+```text
+/models/... -> assets/models/...
+```
 
-Chứa phần cấu hình app-level:
+## Character Room
 
-- `cinematic_app.dart`: MaterialApp, home screen, title, theme.
-- `app_theme.dart`: theme dùng chung.
+`features/character_room/` owns the room/action demo.
 
-### `lib/core/`
+Important files:
 
-Chứa phần dùng chung nhiều feature:
+```text
+lib/features/character_room/presentation/screens/character_room_screen.dart
+assets/web/character_room_viewer.html
+```
 
-- constants màu sắc.
-- widget dùng chung như gradient action button.
+The room viewer loads:
 
-Không đặt logic riêng của một feature vào `core/`.
+- one room GLB
+- one rigged character GLB
+- one animation-only GLB at a time
 
-### `features/cinematic_vfx/`
+## When To Add More Architecture
 
-Feature VFX gồm:
+Add fuller Clean Architecture only when needed for:
 
-- Mock data preset video.
-- Landing screen.
-- Generator screen.
-- Video preview card.
-
-Hiện tại chưa cần domain layer vì VFX vẫn chỉ là UI demo + mock data.
-
-### `features/character_3d/`
-
-Feature 3D có `data/domain/presentation/web` vì khả năng mở rộng cao hơn:
-
-- `domain/entities`: định nghĩa accessory.
-- `data`: mock accessory list.
-- `presentation`: màn hình và widgets.
-- `web`: local HTTP server phục vụ HTML và GLB cho WebView.
-
+- CDN manifest or remote asset catalog
+- AI generation API
+- user inventory
+- login/profile
+- purchases/unlocks
+- persistent user-created characters
