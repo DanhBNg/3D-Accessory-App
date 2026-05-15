@@ -69,6 +69,8 @@
     let statusTimer;
     let characterAnimationClips = [];
     let characterFloorY;
+    let isDraggingCharacter = false;
+    let lastPointerX = 0;
     const characterFloorBox = new THREE.Box3();
 
     const canvas = document.getElementById('canvas');
@@ -76,9 +78,14 @@
 
     const CHARACTER_URLS = {
       character1: '/models/characters_rigged/character_1.glb',
-      character2: '/models/characters_rigged/character_2.glb'
+      character2: '/models/characters_rigged/character_2.glb',
+      character3: '/models/characters_rigged/character_3.glb'
     };
-    const CHARACTER_FLOOR_OFFSET = -0.48;
+    const DEFAULT_IDLE_ANIMATION_URL = '/models/animations/breathing_idle.glb';
+    const CHARACTER_FLOOR_OFFSET = 0.48;
+    const ROOM_SCALE = 3;
+    const ROOM_FLOOR_Y = 0;
+    const CHARACTER_ROTATION_SPEED = 0.01;
 
     init();
     animate();
@@ -120,14 +127,21 @@
       scene.add(fillLight);
 
       controls = new OrbitControls(camera, renderer.domElement);
-      controls.enableDamping = true;
+      controls.enabled = false;
+      controls.enableDamping = false;
       controls.enablePan = false;
+      controls.enableRotate = false;
+      controls.enableZoom = false;
       controls.minDistance = 2.0;
       controls.maxDistance = 7.0;
       controls.target.set(0, 0.9, 0);
       controls.update();
 
       window.addEventListener('resize', onResize);
+      renderer.domElement.addEventListener('pointerdown', onPointerDown);
+      renderer.domElement.addEventListener('pointermove', onPointerMove);
+      renderer.domElement.addEventListener('pointerup', onPointerUp);
+      renderer.domElement.addEventListener('pointercancel', onPointerUp);
 
       try {
         await loadRoom();
@@ -144,9 +158,18 @@
       const gltf = await loader.loadAsync('/models/room/room_default.glb');
       roomModel = gltf.scene;
       roomModel.name = 'room';
+      roomModel.scale.setScalar(ROOM_SCALE);
+      alignRoomFloor(roomModel);
       prepareObject(roomModel);
       scene.add(roomModel);
       fitRoomToView();
+    }
+
+    function alignRoomFloor(object) {
+      const box = new THREE.Box3().setFromObject(object);
+      if (box.isEmpty()) return;
+
+      object.position.y += ROOM_FLOOR_Y - box.min.y;
     }
 
     async function setCharacter(characterId) {
@@ -167,27 +190,11 @@
       scene.add(characterModel);
 
       mixer = new THREE.AnimationMixer(characterModel);
-
-      if (gltf.animations?.length > 0) {
-        const idleClip = gltf.animations.find((clip) =>
-          clip.name.toLowerCase().includes('idle')
-        );
-        if (!idleClip) {
-          defaultIdleAction = null;
-          currentAction = null;
-          status.style.display = 'none';
-          return;
-        }
-
-        defaultIdleAction = mixer.clipAction(idleClip);
-        defaultIdleAction.play();
-        currentAction = defaultIdleAction;
-      } else {
-        defaultIdleAction = null;
-        currentAction = null;
-      }
+      defaultIdleAction = null;
+      currentAction = null;
 
       status.style.display = 'none';
+      await playExternalAnimation(DEFAULT_IDLE_ANIMATION_URL);
     }
 
     async function playExternalAnimation(url) {
@@ -230,6 +237,9 @@
             return;
           }
           nextAction = mixer.clipAction(clip);
+          if (url === DEFAULT_IDLE_ANIMATION_URL) {
+            defaultIdleAction = nextAction;
+          }
         } catch (error) {
           console.error("Failed to load animation:", error);
           return;
@@ -453,6 +463,27 @@
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    function onPointerDown(event) {
+      if (!characterModel) return;
+
+      isDraggingCharacter = true;
+      lastPointerX = event.clientX;
+      renderer.domElement.setPointerCapture?.(event.pointerId);
+    }
+
+    function onPointerMove(event) {
+      if (!isDraggingCharacter || !characterModel) return;
+
+      const deltaX = event.clientX - lastPointerX;
+      lastPointerX = event.clientX;
+      characterModel.rotation.y += deltaX * CHARACTER_ROTATION_SPEED;
+    }
+
+    function onPointerUp(event) {
+      isDraggingCharacter = false;
+      renderer.domElement.releasePointerCapture?.(event.pointerId);
     }
 
     window.setCharacter = function (characterId) {

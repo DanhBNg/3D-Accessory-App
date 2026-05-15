@@ -23,10 +23,15 @@ class _CharacterRoomScreenState extends State<CharacterRoomScreen> {
   static const characters = [
     _RoomCharacter(id: 'character1', label: 'Character 1'),
     _RoomCharacter(id: 'character2', label: 'Character 2'),
+    _RoomCharacter(id: 'character3', label: 'Character 3'),
   ];
 
   static const animations = [
-    _RoomAnimation(id: 'idle', label: 'Idle', url: ''),
+    _RoomAnimation(
+      id: 'idle',
+      label: 'Idle',
+      url: '/models/animations/breathing_idle.glb',
+    ),
     _RoomAnimation(
       id: 'jumping_down',
       label: 'Jumping Down',
@@ -36,6 +41,11 @@ class _CharacterRoomScreenState extends State<CharacterRoomScreen> {
       id: 'spin',
       label: 'Spin',
       url: '/models/animations/spin_act.glb',
+    ),
+    _RoomAnimation(
+      id: 'hip_hop',
+      label: 'Hip Hop Dance',
+      url: '/models/animations/hip_hop_dancing.glb',
     ),
   ];
 

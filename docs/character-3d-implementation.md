@@ -1,55 +1,62 @@
-# Ghi Chú Triển Khai 3D Character
+# 3D Character Implementation Notes
 
-## Luồng Hoạt Động
+## Flow
 
-1. Flutter mở `Character3DDemoScreen`.
-2. Screen khởi động `Local3DAssetServer`.
-3. Local server bind vào `127.0.0.1` với port ngẫu nhiên.
-4. WebView load `http://127.0.0.1:{port}/character_viewer.html`.
-5. HTML dùng Three.js load các file GLB qua URL local:
-   - `/models/character/base_character.glb`
-   - `/models/hair/hair_style_1.glb`
-   - `/models/hats/hat_style_1.glb`
-6. Flutter gọi JavaScript để bật/tắt part hoặc xoay/reset view.
+1. Flutter opens `Character3DDemoScreen`.
+2. The screen starts `Local3DAssetServer`.
+3. The local server binds to `127.0.0.1` with a random port.
+4. WebView loads `http://127.0.0.1:{port}/character_viewer.html`.
+5. Flutter sends a JSON character config to the HTML viewer.
+6. The HTML viewer loads GLB files through local `/models/...` URLs.
 
-## File Quan Trọng
+Current body models for this feature:
+
+```text
+/models/characters_rigged/character_1.glb
+/models/characters_rigged/character_2.glb
+/models/characters_rigged/character_3.glb
+```
+
+## Important Files
 
 - Flutter screen:
   - `lib/features/character_3d/presentation/screens/character_3d_demo_screen.dart`
+- Character config:
+  - `lib/features/character_3d/data/character_object_mock_data.dart`
+- Accessory config:
+  - `lib/features/character_3d/data/accessory_mock_data.dart`
 - Local server:
   - `lib/features/character_3d/web/local_3d_server.dart`
 - HTML viewer:
   - `assets/web/character_viewer.html`
 
-## JavaScript API Hiện Có
+## JavaScript API
 
-HTML viewer expose các function:
+The HTML viewer exposes:
 
 ```js
+setCharacterObject(characterObject)
+setAccessory(config)
 setPartVisible(partName, visible)
 rotateCharacter(deltaY)
 resetView()
 ```
 
-Flutter gọi bằng:
+Flutter calls these through:
 
 ```dart
-_controller.runJavaScript('setPartVisible("hair", true);');
+_controller.runJavaScript(...);
 ```
 
-## Quy Tắc Hiện Tại
+## Current Notes
 
-- Nếu `hat` đang visible thì `hair` bị ẩn để tránh mesh tóc xuyên qua mũ.
-- Transform của từng model đang hard-code trong `ACCESSORIES` của HTML.
-- Khi thêm model mới cần khai báo thêm trong HTML và trong local server.
+- Feature 2 now uses the same rigged character files as the room demo.
+- Old unrigged body files are no longer referenced by this feature.
+- Character switching is guarded with a load token so a stale async GLB load cannot add an old body back into the scene after the user switches character.
+- Accessories are still standalone GLB overlays. Their default transforms may not fit every rigged character yet.
 
-## Hướng Cải Tiến
+## Next Improvements
 
-Nên đưa accessory config sang một cấu trúc dữ liệu chung để tránh sửa nhiều nơi:
-
-- Flutter giữ danh sách accessory.
-- Truyền JSON config sang WebView.
-- HTML load model theo config động.
-
-Lúc đó có thể bỏ hard-code từng path trong `character_viewer.html`.
-
+- Add per-rigged-character accessory transforms if accessory fitting remains part of the demo.
+- Hide or simplify accessory controls if the feature should become a rigged character preview only.
+- Optimize the large rigged GLB files for mobile APK size.

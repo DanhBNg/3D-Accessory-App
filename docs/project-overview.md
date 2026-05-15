@@ -1,41 +1,47 @@
-# Tổng Quan Dự Án
+# Project Overview
 
-## Mục Tiêu
+## Goal
 
-App Flutter demo hai luồng trải nghiệm:
+The app is a Flutter demo with three experience areas:
 
 1. Cinematic VFX
-   - Landing screen giới thiệu preset VFX.
-   - Màn tạo VFX mock bằng ảnh upload giả lập.
-   - Video preview dùng `video_player`.
+   - Landing screen for VFX presets.
+   - Mock image-upload flow.
+   - Video preview with `video_player`.
 
 2. 3D Character Accessory
-   - Hiển thị nhân vật GLB trong WebView.
-   - Load model bằng Three.js trong `assets/web/character_viewer.html`.
-   - Local HTTP server trong Flutter để WebView đọc asset local.
-   - Bật/tắt hair và hat, xoay nhân vật, reset góc nhìn.
+   - Shows GLB character/accessory assets in a WebView.
+   - Uses Three.js in `assets/web/character_viewer.html`.
+   - Uses a local HTTP asset server so HTML can load Flutter bundled assets.
+   - Supports basic accessory selection and viewer controls.
 
-## Công Nghệ Chính
+3. Character Room
+   - Shows a rigged character inside a room GLB.
+   - Uses `assets/web/character_room_viewer.html`.
+   - Loads reusable animation-only GLB files.
+   - Current demo supports 3 rigged characters and 3 actions.
+
+## Main Technologies
 
 - Flutter
 - Dart
 - `video_player`
 - `webview_flutter`
-- Three.js trong HTML viewer
-- Asset local `.glb`
+- Three.js inside local HTML viewers
+- Local `.glb` assets
 
-## Quyết Định Kiến Trúc
+## Architecture Decision
 
-App đang ở giai đoạn demo UI + mock data + asset local, nên dùng **clean-lite**:
+The app is still a local demo, so it uses a clean-lite approach:
 
-- Có chia `data/domain/presentation` cho feature cần mở rộng.
-- Chưa thêm repository/usecase/datasource/DTO/mapper nếu chưa có backend hoặc state management phức tạp.
+- Feature-first folders.
+- `data/domain/presentation` only where it helps.
+- No repository/usecase/datasource/DTO layers unless there is a real backend or API boundary.
 
-Khi app có backend, AI API, user inventory, download accessory từ server, lúc đó mới thêm các lớp như:
+Add fuller architecture later only when needed for:
 
-- `repositories/`
-- `usecases/`
-- `datasources/`
-- DTO/mapper
-- State management rõ ràng hơn như Bloc/Riverpod/Provider
-
+- AI generation API.
+- User inventory.
+- Remote asset download.
+- Login/profile.
+- Payment or unlock flow.

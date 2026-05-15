@@ -58,6 +58,7 @@
     let controls;
     let rootGroup;
     let loader;
+    let loadToken = 0;
 
     const partModels = new Map();
     const partConfigs = new Map();
@@ -75,40 +76,19 @@
     const status = document.getElementById('status');
 
     const DEFAULT_CHARACTER_OBJECT = {
-      id: 'base_character_1',
+      id: 'character1',
       name: 'Character 1',
       base: {
-        id: 'base_character_1',
+        id: 'character1',
         name: 'Character 1',
         slot: 'body',
-        url: '/models/character/base_character.glb',
+        url: '/models/characters_rigged/character_1.glb',
         position: [0, 0, 0],
         rotation: [0, 0, 0],
         scale: [1, 1, 1],
         hidesSlots: []
       },
-      accessories: [
-        {
-          id: 'hair_style_1',
-          name: 'Hair 1',
-          slot: 'hair',
-          url: '/models/hair/hair_style_1.glb',
-          position: [0, 0.87, 0],
-          rotation: [0, 0.02, 0],
-          scale: [0.49, 0.49, 0.49],
-          hidesSlots: []
-        },
-        {
-          id: 'hat_style_1',
-          name: 'Hat 1',
-          slot: 'hat',
-          url: '/models/hats/hat_style_1.glb',
-          position: [0, 0.88, -0.04],
-          rotation: [0, 0, 0],
-          scale: [0.60, 0.60, 0.60],
-          hidesSlots: ['hair']
-        }
-      ]
+      accessories: []
     };
 
     init();
@@ -160,17 +140,21 @@
     }
 
     async function loadCharacterObject(characterObject) {
+      const token = ++loadToken;
+
       try {
         status.style.display = 'block';
         status.innerText = 'Loading character...';
 
         clearCurrentParts();
 
-        await loadPart(characterObject.base);
+        await loadPart(characterObject.base, token);
+        if (token !== loadToken) return;
 
         const accessories = characterObject.accessories || [];
         for (const accessory of accessories) {
-          await loadPart(accessory);
+          await loadPart(accessory, token);
+          if (token !== loadToken) return;
         }
 
         applySlotVisibility();
@@ -183,12 +167,18 @@
       }
     }
 
-    async function loadPart(config) {
+    async function loadPart(config, token = loadToken) {
       if (!config || !config.slot || !config.url) return;
+      if (token !== loadToken) return;
 
       removePart(config.slot);
 
       const gltf = await loader.loadAsync(config.url);
+      if (token !== loadToken) {
+        disposeObject(gltf.scene);
+        return;
+      }
+
       const object = preparePart(gltf.scene, config);
 
       if (config.slot !== 'body') {
@@ -233,6 +223,13 @@
       if (!object) return;
 
       rootGroup.remove(object);
+      disposeObject(object);
+
+      partModels.delete(slot);
+      partConfigs.delete(slot);
+    }
+
+    function disposeObject(object) {
       object.traverse((child) => {
         if (child.isMesh) {
           child.geometry?.dispose?.();
@@ -243,9 +240,6 @@
           }
         }
       });
-
-      partModels.delete(slot);
-      partConfigs.delete(slot);
     }
 
     function fitCharacterToView() {

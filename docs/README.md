@@ -1,23 +1,47 @@
 # Flutter 3D Accessory - Project Docs
 
-Prompt guide for consistent 3D model generation: [3D model prompt guide](3d-model-prompt-guide.md)
+This folder contains handoff notes, asset workflow notes, and implementation guides for the Flutter 3D demo.
 
-Tài liệu này dùng để chuyển giao dự án, tiếp tục phát triển ở môi trường khác, hoặc gửi lại cho Codex/AI assistant khi cần khôi phục ngữ cảnh.
+## Contents
 
-## Mục Lục
+- [Project overview](project-overview.md)
+- [Architecture](architecture.md)
+- [Roadmap](roadmap.md)
+- [Asset guide](asset-guide.md)
+- [3D character implementation](character-3d-implementation.md)
+- [Character room feature plan](character-room-feature-plan.md)
+- [Shared character animation guide](shared-character-animation-guide.md)
+- [3D AI tooling guide](3d-ai-tooling-guide.md)
+- [3D model prompt guide](3d-model-prompt-guide.md)
+- [Handoff checklist](handoff-checklist.md)
 
-- [Tổng quan dự án](project-overview.md)
-- [Kiến trúc và cấu trúc thư mục](architecture.md)
-- [Kế hoạch phát triển](roadmap.md)
-- [Ghi chú triển khai 3D Character](character-3d-implementation.md)
-- [Quản lý assets](asset-guide.md)
-- [Checklist chuyển giao](handoff-checklist.md)
+## Current Status
 
-## Trạng Thái Hiện Tại
+The project is a Flutter demo with three main experience areas:
 
-Dự án đang là Flutter demo gồm hai phần chính:
+- `cinematic_vfx`: mock cinematic VFX UI and video previews.
+- `character_3d`: accessory viewer using WebView, local asset server, and Three.js.
+- `character_room`: room viewer with rigged characters and reusable Mixamo-style animation GLBs.
 
-- `cinematic_vfx`: UI demo tạo cinematic VFX bằng mock data và video preview.
-- `character_3d`: demo xem nhân vật 3D bằng WebView, local asset server và Three.js trong HTML.
+The current architecture is feature-first and clean-lite. Full Clean Architecture layers should be added only when a backend, AI API, inventory, or remote asset pipeline is introduced.
 
-Kiến trúc hiện tại dùng hướng **feature-first + clean-lite**, chưa dùng Clean Architecture đầy đủ để tránh phức tạp sớm.
+## Current Character Room Demo
+
+Current room assets:
+
+```text
+assets/models/room/room_default.glb
+assets/models/characters_rigged/character_1.glb
+assets/models/characters_rigged/character_2.glb
+assets/models/characters_rigged/character_3.glb
+assets/models/animations/breathing_idle.glb
+assets/models/animations/jumping_down.glb
+assets/models/animations/spin_act.glb
+assets/models/animations/hip_hop_dancing.glb
+```
+
+The reusable animation workflow is documented in:
+
+```text
+docs/shared-character-animation-guide.md
+```

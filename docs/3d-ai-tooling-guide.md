@@ -1,166 +1,154 @@
 # 3D AI Tooling Guide
 
-Tai lieu nay gom cac tool va pipeline nen dung de tao asset cho `Character Room`.
+This guide covers the practical asset pipeline for the Character Room and accessory demos.
 
-Muc tieu cua feature:
+## Current Character Room Target
 
-- `female_full.glb`
-- `male_full.glb`
-- `room_default.glb`
-- character GLB co animation clips: `Idle`, `Run`, `Jump`, `Dance`
-
-## Nhom Viec Can Lam
-
-Can tach thanh 2 nhom:
-
-1. Tao model 3D tinh.
-2. Rig va animation cho character.
-
-Room la model tinh, khong can rig/animation. Male/female character can rig va animation.
-
-## Tool Tao Model 3D
-
-Dung de tao:
+The current Character Room demo uses separate character and animation files:
 
 ```text
-assets/models/characters_full/female_full.glb
-assets/models/characters_full/male_full.glb
+assets/models/characters_rigged/character_1.glb
+assets/models/characters_rigged/character_2.glb
+assets/models/characters_rigged/character_3.glb
+
+assets/models/animations/breathing_idle.glb
+assets/models/animations/jumping_down.glb
+assets/models/animations/spin_act.glb
+assets/models/animations/hip_hop_dancing.glb
+
 assets/models/room/room_default.glb
 ```
 
-Recommended tools:
-
-- Meshy AI: uu tien cho project nay vi co text/image to 3D, auto-rig, animation presets, export GLB/FBX.
-- Tripo AI: tot cho text/image to 3D, auto-rig, export GLB/FBX/OBJ.
-- Hunyuan 3D / Seed 3D: tot cho GLB tinh, nhung rig/animation co the can tool khac.
-- Zeno3D / Dimensia: co the dung cho props/room/model tinh, khong nen uu tien cho character animation.
-
-## Tool Rig Va Animation
-
-Dung de cho character co:
+The goal is reusable animation:
 
 ```text
-Idle
-Run
-Jump
-Dance
+Character 1 + Idle / Jumping Down / Spin / Hip Hop Dance
+Character 2 + Idle / Jumping Down / Spin / Hip Hop Dance
+Character 3 + Idle / Jumping Down / Spin / Hip Hop Dance
 ```
 
-Recommended tools:
+## Recommended Workflow For Characters
 
-- Meshy AI: tien nhat neu muon end-to-end. Generate/upload character, auto-rig, chon animation, export GLB/FBX.
-- Mixamo: rat on cho humanoid animation. Thuong workflow la FBX, sau do dung Blender export lai GLB.
-- Tripo AI Auto Rigging: auto skeleton/skin weights, export GLB/FBX/OBJ.
-- AutoRig.online: rig GLB/FBX/OBJ online.
-- afk.ai: rig/animate GLB/GLTF, export animated character cho game/web viewer.
+Use Mixamo for the first production-like demo:
 
-## Recommended Pipeline
-
-Pipeline de lam nhanh nhat:
+1. Start with a humanoid character model.
+2. Upload it to Mixamo.
+3. Auto-rig it.
+4. Download with:
 
 ```text
-Meshy AI:
-  create male_full / female_full
-  auto-rig
-  apply Idle / Run / Jump / Dance
-  export GLB
-
-Meshy AI or Tripo:
-  create room_default.glb
+Format: FBX Binary
+Skin: With Skin
+Pose: T-Pose
 ```
 
-Pipeline neu Meshy animation khong dung y:
+5. Open the rigged FBX in Blender.
+6. Reconnect materials/textures if Mixamo did not preserve them.
+7. Export as GLB:
 
 ```text
-Meshy/Tripo:
-  create static character
-
-Mixamo:
-  auto-rig
-  apply Idle / Run / Jump / Dance
-  export FBX
-
-Blender:
-  import FBX
-  check scale/orientation
-  check animation clip names
-  make animation in-place if needed
-  export GLB
+Format: glTF Binary (.glb)
+Data: Mesh + Skinning
+Materials: Export
+Images: embedded/automatic
+Animation: optional for character files
 ```
 
-## Character Export Requirements
+## Recommended Workflow For Animations
 
-Moi character GLB nen:
+Use the same Mixamo character/skeleton when downloading animation files.
 
-- la model humanoid ro rang
-- la full character hoan chinh
-- co mesh, material, rig/skeleton
-- co embedded animation clips
-- face forward +Z
-- feet on ground
-- stand near origin
-- scale nam/nu tuong doi thong nhat
-- animation chay tai cho, khong root motion di ra khoi vi tri
-
-Required clip names:
+Download animation with:
 
 ```text
-Idle
-Run
-Jump
-Dance
+Format: FBX Binary
+Skin: Without Skin
 ```
 
-Neu tool export lowercase hoac ten dai hon, nen rename trong Blender hoac map lai trong code.
+Then convert in Blender to GLB:
 
-## Room Export Requirements
+```text
+assets/models/animations/action_name.glb
+```
 
-Room GLB nen:
+Animation-only GLBs do not need mesh, material, or texture. They only need animation tracks targeting the compatible skeleton.
 
-- la model tinh
-- khong co character
-- floor centered around origin
-- co khoang trong giua phong de dat character
-- mobile optimized
-- texture/material don gian
-- khong co hidden camera/light/floor thua neu khong can
+## Mixamo Skeleton Notes
 
-Recommended room prompt:
+Mixamo exports can use different naming variants:
+
+```text
+mixamorigHips
+mixamorig_Hips
+```
+
+The current viewer maps between these two variants. Different skeleton structures still require retargeting in Blender.
+
+## Room Generation
+
+Room assets do not need rigging or animation.
+
+Recommended prompt:
 
 ```text
 Create a cute stylized compact 3D room interior as a GLB model for a mobile avatar app. The room should have a simple floor, back wall, soft lighting style, and a small empty center area where a chibi character can stand. No character, no people, no text, no logo, no animation. Front-facing composition, floor centered at origin, mobile optimized, simple clean topology, soft rounded toy-like shapes.
 ```
 
-## Practical Recommendation
+## Useful Tools
 
-Nen bat dau bang Meshy AI vi no co kha nang lam gan het pipeline trong mot cho:
+- Mixamo: best for quick humanoid rigging and animation.
+- Blender: required for cleanup, texture reconnecting, scale/orientation checks, and GLB export.
+- Meshy AI / Tripo AI: useful for generating static character or prop meshes.
+- Hunyuan 3D / Seed 3D: useful for static GLB generation, usually needs separate rigging.
 
-```text
-Text/Image to 3D
-Auto rig
-Animation presets
-GLB export
-```
-
-Neu ket qua animation chua tot, dung Blender lam buoc cleanup cuoi cung truoc khi dua vao Flutter/Three.js.
-
-## File Naming
-
-Use these exact names first:
+## Character Export Checklist
 
 ```text
-assets/models/characters_full/female_full.glb
-assets/models/characters_full/male_full.glb
-assets/models/room/room_default.glb
+[ ] GLB format
+[ ] Has mesh
+[ ] Has skeleton/bones
+[ ] Has skin weights
+[ ] Has materials/textures if color matters
+[ ] Mixamo-compatible skeleton
+[ ] Feet near ground
+[ ] Reasonable scale
+[ ] Mobile-friendly file size
 ```
 
-Use these animation clip names first:
+## Animation Export Checklist
 
 ```text
-Idle
-Run
-Jump
-Dance
+[ ] GLB format
+[ ] Has at least one animation clip
+[ ] Targets Mixamo-compatible bones
+[ ] In-place if the character should not travel around the room
+[ ] Root/Hips vertical movement is acceptable
 ```
 
-Giữ naming đơn giản giúp viewer Three.js load và switch action dễ hơn.
+## Common Problems
+
+### Character Has No Color
+
+If a rigged GLB reports:
+
+```text
+Textures: 0
+Images: 0
+```
+
+then the color data is not in the file. Reconnect original textures in Blender and export GLB again.
+
+### Animation Does Not Move The Character
+
+Usually caused by:
+
+```text
+character has no skeleton/skin
+animation targets different bone names or structure
+```
+
+Fix by using a rigged character with a compatible Mixamo skeleton.
+
+### Character Floats During Animation
+
+Usually caused by root or hips translation in the animation. Prefer in-place exports. The current viewer also grounds `Hips/Root` at runtime as a fallback.

@@ -1,58 +1,89 @@
-# Kế Hoạch Phát Triển
+# Roadmap
 
-## Giai Đoạn 1 - Demo Ổn Định
+## Phase 1 - Stable Demo
 
-- Giữ app chạy ổn với VFX mock data.
-- Giữ 3D viewer load được:
-  - base character
-  - hair
-  - hat
-- Cho phép bật/tắt accessory cơ bản.
-- Tách code theo feature-first clean-lite.
+Status: implemented.
 
-Trạng thái: đã triển khai.
+- Keep the Cinematic VFX mock flow running.
+- Keep the 3D accessory viewer working with local GLB assets.
+- Support basic accessory toggling and category selection.
+- Keep the codebase feature-first and clean-lite.
 
-## Giai Đoạn 2 - Mở Rộng Accessory
+## Phase 2 - Character Room Shared Animation Demo
 
-Việc nên làm tiếp:
+Status: implemented for the first demo pass.
 
-- Chuẩn hóa model 3D thành `Character3DObject`:
-  - mỗi nhân vật là một object riêng
-  - object có base model riêng
-  - object có danh sách accessory mặc định theo slot
-  - accessory vẫn là các part gắn vào object, ví dụ hair, hat, glasses, mask, outfit
-- Thêm model cho:
-  - glasses
-  - masks
-  - outfits
-  - nhiều style hair/hat
-- Thêm thumbnail thật cho mỗi accessory.
-- Cho phép chọn nhiều item theo slot.
-- Thay logic hard-code trong HTML bằng config accessory động từ Flutter sang JavaScript.
+Current demo scope:
 
-## Giai Đoạn 3 - Quản Lý State Tốt Hơn
+- Room model: `assets/models/room/room_default.glb`
+- Rigged characters:
+  - `assets/models/characters_rigged/character_1.glb`
+  - `assets/models/characters_rigged/character_2.glb`
+  - `assets/models/characters_rigged/character_3.glb`
+- Animation-only files:
+  - `assets/models/animations/breathing_idle.glb`
+  - `assets/models/animations/jumping_down.glb`
+  - `assets/models/animations/spin_act.glb`
+  - `assets/models/animations/hip_hop_dancing.glb`
+- Viewer: `assets/web/character_room_viewer.html`
+- Screen: `CharacterRoomScreen`
 
-Khi UI phức tạp hơn:
+Important rule:
 
-- Tách state selection accessory ra khỏi `StatefulWidget`.
-- Có thể dùng `ChangeNotifier`, Riverpod hoặc Bloc.
-- Thêm model selected state:
-  - selected hair
-  - selected hat
-  - selected glasses
-  - hidden slots
+- Characters and animations must share a compatible Mixamo skeleton.
+- The viewer maps the two common Mixamo naming variants:
+  - `mixamorigHips`
+  - `mixamorig_Hips`
+- Root/Hips vertical position is grounded so actions stay on the character floor offset `0.48`.
+- The room floor is kept at `0`, and the room camera stays fixed while horizontal drag rotates only the character.
 
-## Giai Đoạn 4 - Backend Hoặc AI API
+Next improvements:
 
-Chỉ nên thêm Clean Architecture đầy đủ khi có nhu cầu thật:
+- Replace placeholder/test character files with final optimized mobile GLBs.
+- Keep `breathing_idle.glb` as the default entry animation.
+- Prefer in-place animation exports from Mixamo when available.
+- Move large `.glb` files to Git LFS if the repo continues to store binary assets.
 
-- API tạo VFX.
+## Phase 3 - Asset Size And Mobile Optimization
+
+Status: pending.
+
+Recommended work:
+
+- Compress textures before exporting GLB.
+- Reduce mesh poly count for mobile.
+- Remove unused demo assets from `pubspec.yaml`.
+- Avoid committing temporary `.model` files unless the app directly uses them.
+- Consider Draco or meshopt compression if the viewer pipeline supports it.
+- Consider Git LFS for GLB files larger than 50 MB.
+
+## Phase 4 - Accessory Expansion
+
+Status: optional.
+
+Only expand this if the accessory editor remains part of the demo goal.
+
+Possible work:
+
+- Add more hair, hat, glasses, mask, outfit assets.
+- Add thumbnails for every visible item.
+- Replace hard-coded transforms with config-driven transforms.
+- Support per-character accessory transforms.
+- Add a clearer selected/accessory state model.
+
+## Phase 5 - Backend Or AI API
+
+Status: future.
+
+Only add full Clean Architecture layers when there is a real backend or API need:
+
+- AI generation API.
 - User inventory.
-- Download accessory từ server.
-- Login/user profile.
-- Payment hoặc unlock item.
+- Remote asset download.
+- Login/profile.
+- Payment or unlock flow.
 
-Khi đó mới thêm:
+At that point, add:
 
 ```text
 data/

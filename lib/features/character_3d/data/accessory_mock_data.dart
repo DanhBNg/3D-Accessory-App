@@ -11,13 +11,6 @@ const List<AccessoryItem> accessoryItems = [
     position: [0, 0.87, 0],
     rotation: [0, 0.02, 0],
     scale: [0.49, 0.49, 0.49],
-    characterTransforms: {
-      'female_body_1': AccessoryTransform(
-        position: [0, 0.91, 0],
-        rotation: [0, 0.02, 0],
-        scale: [0.47, 0.47, 0.47],
-      ),
-    },
     thumbnailPath: 'assets/thumbnails/hair/hair_style_1.png',
   ),
   AccessoryItem(
@@ -29,12 +22,6 @@ const List<AccessoryItem> accessoryItems = [
     position: [0, 0.90, -0.03],
     scale: [0.62, 0.62, 0.62],
     hidesSlots: [AccessorySlot.hair],
-    characterTransforms: {
-      'female_body_1': AccessoryTransform(
-        position: [0, 0.93, -0.03],
-        scale: [0.59, 0.59, 0.59],
-      ),
-    },
   ),
   AccessoryItem(
     id: 'hat_style_1',
@@ -45,12 +32,6 @@ const List<AccessoryItem> accessoryItems = [
     position: [0, 0.88, -0.04],
     scale: [0.60, 0.60, 0.60],
     hidesSlots: [AccessorySlot.hair],
-    characterTransforms: {
-      'female_body_1': AccessoryTransform(
-        position: [0, 0.92, -0.04],
-        scale: [0.57, 0.57, 0.57],
-      ),
-    },
     thumbnailPath: 'assets/thumbnails/hats/hat_style_1.png',
   ),
   AccessoryItem(
@@ -61,12 +42,6 @@ const List<AccessoryItem> accessoryItems = [
     viewerPath: '/models/glasses/cybor_visor.glb',
     position: [0, 0.72, 0.18],
     scale: [0.42, 0.42, 0.42],
-    characterTransforms: {
-      'female_body_1': AccessoryTransform(
-        position: [0, 0.75, 0.17],
-        scale: [0.39, 0.39, 0.39],
-      ),
-    },
   ),
   AccessoryItem(
     id: 'glassy_round',
@@ -76,12 +51,6 @@ const List<AccessoryItem> accessoryItems = [
     viewerPath: '/models/glasses/glassy_round.glb',
     position: [0, 0.72, 0.18],
     scale: [0.42, 0.42, 0.42],
-    characterTransforms: {
-      'female_body_1': AccessoryTransform(
-        position: [0, 0.75, 0.17],
-        scale: [0.39, 0.39, 0.39],
-      ),
-    },
   ),
   AccessoryItem(
     id: 'medical_mask',
@@ -91,12 +60,6 @@ const List<AccessoryItem> accessoryItems = [
     viewerPath: '/models/masks/medical_mask.glb',
     position: [0, 0.61, 0.20],
     scale: [0.42, 0.42, 0.42],
-    characterTransforms: {
-      'female_body_1': AccessoryTransform(
-        position: [0, 0.64, 0.19],
-        scale: [0.39, 0.39, 0.39],
-      ),
-    },
   ),
   AccessoryItem(
     id: 'ninja_mask',
@@ -107,12 +70,6 @@ const List<AccessoryItem> accessoryItems = [
     position: [0, 0.61, 0.17],
     scale: [0.46, 0.46, 0.46],
     hidesSlots: [AccessorySlot.glasses],
-    characterTransforms: {
-      'female_body_1': AccessoryTransform(
-        position: [0, 0.64, 0.16],
-        scale: [0.43, 0.43, 0.43],
-      ),
-    },
   ),
   AccessoryItem(
     id: 'mini_backpack',
@@ -123,12 +80,5 @@ const List<AccessoryItem> accessoryItems = [
     position: [0, 0.30, -0.30],
     rotation: [0, 3.14, 0],
     scale: [0.55, 0.55, 0.55],
-    characterTransforms: {
-      'female_body_1': AccessoryTransform(
-        position: [0, 0.33, -0.28],
-        rotation: [0, 3.14, 0],
-        scale: [0.50, 0.50, 0.50],
-      ),
-    },
   ),
 ];

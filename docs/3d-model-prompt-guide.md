@@ -265,7 +265,7 @@ Fit target: compatible with the back of a chibi headless body around 1.8 to 2.0 
 
 ## Bracelet Prompt
 
-Use for `assets/models/others/bracelet.glb` or move later to `assets/models/wrist/`.
+Use for a future wrist accessory such as `assets/models/wrist/bracelet.glb`.
 
 ```text
 Create ONLY one standalone 3D accessory asset: cute chibi bracelet.
@@ -357,11 +357,11 @@ Accessories are currently configured in:
 lib/features/character_3d/data/accessory_mock_data.dart
 ```
 
-Per-body fitting is currently handled with:
+Per-body fitting can be handled with:
 
 ```dart
 characterTransforms: {
-  'female_body_1': AccessoryTransform(
+  'character1': AccessoryTransform(
     position: [0, 0.93, -0.03],
     scale: [0.60, 0.60, 0.60],
   ),

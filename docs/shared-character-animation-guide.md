@@ -1,6 +1,6 @@
 # Shared Character Animation Guide
 
-This guide explains how to set up a simple demo with 2 characters and 2 animations, where each character can use the same animations.
+This guide explains how to set up a simple demo with multiple characters and reusable animations, where each character can use the same animation files.
 
 The key idea: characters and animations must be separate assets, but they must use the same skeleton standard.
 
@@ -62,7 +62,7 @@ An animation clip does not magically move any character. It only moves matching 
 
 ## Why The Current Demo Feels Fixed
 
-Right now, `hip_hop_dancing.glb` is being used as both:
+Earlier temporary tests used a dance animation GLB as both:
 
 ```text
 1. the character model
@@ -74,11 +74,14 @@ That works for one demo model, but it is fixed to that asset.
 The better setup is:
 
 ```text
-characters/base_character_rigged.glb
-characters/female_body_1_rigged.glb
+characters/character_1.glb
+characters/character_2.glb
+characters/character_3.glb
 
-animations/idle.glb
+animations/jumping_down.glb
+animations/spin_act.glb
 animations/hip_hop_dancing.glb
+animations/breathing_idle.glb
 ```
 
 Then the app loads:
@@ -96,11 +99,14 @@ Use a structure like this:
 
 ```text
 assets/models/characters_rigged/
-  character_01.glb
-  character_02.glb
+  character_1.glb
+  character_2.glb
+  character_3.glb
 
 assets/models/animations/
-  idle.glb
+  breathing_idle.glb
+  jumping_down.glb
+  spin_act.glb
   hip_hop_dancing.glb
 ```
 
@@ -127,10 +133,13 @@ All characters must share the same skeleton standard.
 For a simple demo, use Mixamo for everything:
 
 ```text
-character_01.glb -> Mixamo rig -> mixamorig_* bones
-character_02.glb -> Mixamo rig -> mixamorig_* bones
+character_1.glb -> Mixamo rig -> mixamorig_* bones
+character_2.glb -> Mixamo rig -> mixamorig_* bones
+character_3.glb -> Mixamo rig -> mixamorig_* bones
+breathing_idle.glb -> Mixamo animation -> mixamorig_* bones
+jumping_down.glb -> Mixamo animation -> mixamorig_* bones
+spin_act.glb -> Mixamo animation -> mixamorig_* bones
 hip_hop_dancing.glb -> Mixamo animation -> mixamorig_* bones
-idle.glb -> Mixamo animation -> mixamorig_* bones
 ```
 
 If one character uses `mixamorig_LeftArm` and another uses `LeftArmature_Arm_L`, the same animation will not apply directly.
@@ -140,9 +149,12 @@ If one character uses `mixamorig_LeftArm` and another uses `LeftArmature_Arm_L`,
 For the first clean demo, prepare these 4 files:
 
 ```text
-assets/models/characters_rigged/character_01.glb
-assets/models/characters_rigged/character_02.glb
-assets/models/animations/idle.glb
+assets/models/characters_rigged/character_1.glb
+assets/models/characters_rigged/character_2.glb
+assets/models/characters_rigged/character_3.glb
+assets/models/animations/breathing_idle.glb
+assets/models/animations/jumping_down.glb
+assets/models/animations/spin_act.glb
 assets/models/animations/hip_hop_dancing.glb
 ```
 
@@ -219,7 +231,7 @@ Has bones: no
 Has mesh: yes
 ```
 
-The current `base_character.glb` is in the bad category for shared animation because it has mesh only.
+Any GLB with mesh only, and no skins/bones, is in the bad category for shared animation.
 
 ## How The App Should Work
 
@@ -227,26 +239,29 @@ The viewer should keep two separate concepts:
 
 ```js
 const CHARACTERS = {
-  character01: '/models/characters_rigged/character_01.glb',
-  character02: '/models/characters_rigged/character_02.glb'
+  character1: '/models/characters_rigged/character_1.glb',
+  character2: '/models/characters_rigged/character_2.glb',
+  character3: '/models/characters_rigged/character_3.glb'
 };
 
 const ANIMATIONS = {
-  idle: '/models/animations/idle.glb',
-  hiphop: '/models/animations/hip_hop_dancing.glb'
+  idle: '/models/animations/breathing_idle.glb',
+  jumpingDown: '/models/animations/jumping_down.glb',
+  spin: '/models/animations/spin_act.glb',
+  hipHop: '/models/animations/hip_hop_dancing.glb'
 };
 ```
 
 When selecting a character:
 
 ```js
-loadCharacter(CHARACTERS.character01);
+loadCharacter(CHARACTERS.character1);
 ```
 
 When selecting an animation:
 
 ```js
-playAnimation(ANIMATIONS.hiphop);
+playAnimation(ANIMATIONS.jumpingDown);
 ```
 
 Do not use the dance GLB as the character model unless it is only a temporary test.
@@ -376,8 +391,8 @@ Do not try to support every possible downloaded model yet.
 First milestone:
 
 ```text
-2 rigged Mixamo characters
-2 Mixamo animations
+3 rigged Mixamo characters
+3 Mixamo animations
 all exported as GLB
 all using mixamorig_* bones
 ```
@@ -424,8 +439,8 @@ Animations target that shared rig.
 For now, build the demo around:
 
 ```text
-2 characters with Mixamo rig
-2 animations from Mixamo
+3 characters with Mixamo rig
+3 animations from Mixamo
 ```
 
 That is the cleanest path to make the dance reusable instead of fixed to one model.
