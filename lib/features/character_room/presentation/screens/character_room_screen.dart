@@ -1,7 +1,15 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../character_3d/data/accessory_mock_data.dart';
+import '../../../character_3d/data/character_object_mock_data.dart';
+import '../../../character_3d/data/saved_character_build_store.dart';
+import '../../../character_3d/domain/entities/accessory_item.dart';
+import '../../../character_3d/domain/entities/character_3d_object.dart';
+import '../../../character_3d/domain/entities/saved_character_build.dart';
 import '../../../character_3d/web/local_3d_server.dart';
 
 class CharacterRoomScreen extends StatefulWidget {
@@ -13,18 +21,16 @@ class CharacterRoomScreen extends StatefulWidget {
 
 class _CharacterRoomScreenState extends State<CharacterRoomScreen> {
   final _assetServer = Local3DAssetServer();
+  final _savedBuildStore = SavedCharacterBuildStore();
   late final WebViewController _controller;
 
-  String selectedCharacter = 'character1';
+  List<SavedCharacterBuild> savedBuilds = [];
+  bool isLoadingBuilds = true;
+  String? selectedBuildId;
+  String selectedCharacter = characterObjects.first.id;
   String selectedAnimation = 'idle';
   bool isViewerLoading = true;
   String? viewerError;
-
-  static const characters = [
-    _RoomCharacter(id: 'character1', label: 'Character 1'),
-    _RoomCharacter(id: 'character2', label: 'Character 2'),
-    _RoomCharacter(id: 'character3', label: 'Character 3'),
-  ];
 
   static const animations = [
     _RoomAnimation(
@@ -58,6 +64,7 @@ class _CharacterRoomScreenState extends State<CharacterRoomScreen> {
       ..setBackgroundColor(const Color(0x00000000));
 
     _startViewer();
+    _loadSavedBuilds();
   }
 
   Future<void> _startViewer() async {
@@ -70,6 +77,7 @@ class _CharacterRoomScreenState extends State<CharacterRoomScreen> {
             if (mounted) {
               setState(() => isViewerLoading = false);
             }
+            _syncSelectedBuildToViewer();
           },
           onWebResourceError: (error) {
             if (mounted) {
@@ -101,21 +109,44 @@ class _CharacterRoomScreenState extends State<CharacterRoomScreen> {
     super.dispose();
   }
 
-  Future<void> _selectCharacter(String characterId) async {
-    setState(() => selectedCharacter = characterId);
-    await _controller.runJavaScript('setCharacter("$characterId");');
+  Future<void> _loadSavedBuilds() async {
+    try {
+      final builds = await _savedBuildStore.loadBuilds();
+      if (!mounted) return;
 
-    // When switching character, re-apply the selected animation
-    final animUrl = animations.firstWhere((a) => a.id == selectedAnimation).url;
-    if (animUrl.isNotEmpty) {
-      // Need a slight delay to let character load, but in reality we should await the JS promise.
-      // Since runJavaScript returns immediately, we use a small delay for now.
-      Future.delayed(const Duration(milliseconds: 500), () {
-        if (mounted) {
-          _controller.runJavaScript('playExternalAnimation("$animUrl");');
-        }
+      setState(() {
+        savedBuilds = builds;
+        selectedBuildId = builds.isEmpty ? null : builds.first.id;
+        selectedCharacter = builds.isEmpty
+            ? characterObjects.first.id
+            : builds.first.characterId;
+        isLoadingBuilds = false;
       });
+
+      await _syncSelectedBuildToViewer();
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => isLoadingBuilds = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Cannot load saved characters: $error')),
+      );
     }
+  }
+
+  Future<void> _selectCharacter(String characterId) async {
+    setState(() {
+      selectedBuildId = null;
+      selectedCharacter = characterId;
+    });
+    await _syncSelectedBuildToViewer();
+  }
+
+  Future<void> _selectSavedBuild(SavedCharacterBuild build) async {
+    setState(() {
+      selectedBuildId = build.id;
+      selectedCharacter = build.characterId;
+    });
+    await _syncSelectedBuildToViewer();
   }
 
   Future<void> _selectAnimation(String animationId) async {
@@ -128,11 +159,62 @@ class _CharacterRoomScreenState extends State<CharacterRoomScreen> {
     await _controller.runJavaScript('location.reload();');
   }
 
+  Future<void> _syncSelectedBuildToViewer() async {
+    if (viewerError != null || isViewerLoading) return;
+
+    final character = _characterById(selectedCharacter);
+    final build = _selectedBuild;
+    final selectedAccessoryIds = build?.accessoryIdsBySlot.values ?? const [];
+    final config = {
+      'id': build?.id ?? character.id,
+      'name': build?.name ?? character.name,
+      'base': character.toBaseViewerConfig(),
+      'accessories': selectedAccessoryIds
+          .map(_accessoryById)
+          .whereType<AccessoryItem>()
+          .map((item) => item.toViewerConfig(characterId: character.id))
+          .toList(),
+    };
+
+    await _controller.runJavaScript(
+      'setCharacterObject(${jsonEncode(config)});',
+    );
+
+    final animUrl = animations.firstWhere((a) => a.id == selectedAnimation).url;
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted) {
+        _controller.runJavaScript('playExternalAnimation("$animUrl");');
+      }
+    });
+  }
+
+  SavedCharacterBuild? get _selectedBuild {
+    final id = selectedBuildId;
+    if (id == null) return null;
+    for (final build in savedBuilds) {
+      if (build.id == id) return build;
+    }
+    return null;
+  }
+
+  Character3DObject _characterById(String id) {
+    return characterObjects.firstWhere(
+      (item) => item.id == id,
+      orElse: () => characterObjects.first,
+    );
+  }
+
+  AccessoryItem? _accessoryById(String id) {
+    for (final item in accessoryItems) {
+      if (item.id == id) return item;
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
-    final selectedLabel = characters
-        .firstWhere((item) => item.id == selectedCharacter)
-        .label;
+    final selectedLabel =
+        _selectedBuild?.name ?? _characterById(selectedCharacter).name;
 
     return Scaffold(
       body: SafeArea(
@@ -245,6 +327,60 @@ class _CharacterRoomScreenState extends State<CharacterRoomScreen> {
   }
 
   Widget _buildCharacterSelector() {
+    if (isLoadingBuilds) {
+      return const SizedBox(
+        height: 42,
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: CircularProgressIndicator(color: AppColors.secondary),
+        ),
+      );
+    }
+
+    if (savedBuilds.isNotEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Saved Characters',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            height: 42,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: savedBuilds.length,
+              separatorBuilder: (_, _) => const SizedBox(width: 8),
+              itemBuilder: (context, index) {
+                final build = savedBuilds[index];
+                final selected = build.id == selectedBuildId;
+
+                return ChoiceChip(
+                  label: Text(build.name),
+                  selected: selected,
+                  onSelected: (_) => _selectSavedBuild(build),
+                  selectedColor: AppColors.primary,
+                  backgroundColor: Colors.white.withValues(alpha: 0.06),
+                  labelStyle: TextStyle(
+                    color: selected ? Colors.white : Colors.white70,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  side: BorderSide(
+                    color: Colors.white.withValues(alpha: 0.08),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -261,14 +397,14 @@ class _CharacterRoomScreenState extends State<CharacterRoomScreen> {
           height: 42,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
-            itemCount: characters.length,
+            itemCount: characterObjects.length,
             separatorBuilder: (_, _) => const SizedBox(width: 8),
             itemBuilder: (context, index) {
-              final character = characters[index];
+              final character = characterObjects[index];
               final selected = character.id == selectedCharacter;
 
               return ChoiceChip(
-                label: Text(character.label),
+                label: Text(character.name),
                 selected: selected,
                 onSelected: (_) => _selectCharacter(character.id),
                 selectedColor: AppColors.primary,
@@ -327,13 +463,6 @@ class _CharacterRoomScreenState extends State<CharacterRoomScreen> {
       ],
     );
   }
-}
-
-class _RoomCharacter {
-  final String id;
-  final String label;
-
-  const _RoomCharacter({required this.id, required this.label});
 }
 
 class _RoomAnimation {

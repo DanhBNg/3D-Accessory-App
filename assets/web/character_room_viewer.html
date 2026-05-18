@@ -67,7 +67,10 @@
     let currentAction;
     let defaultIdleAction;
     let statusTimer;
+    let characterLoadToken = 0;
+    let externalCharacterRequested = false;
     let characterAnimationClips = [];
+    let accessoryModels = [];
     let characterFloorY;
     let isDraggingCharacter = false;
     let lastPointerX = 0;
@@ -86,6 +89,15 @@
     const ROOM_SCALE = 3;
     const ROOM_FLOOR_Y = 0;
     const CHARACTER_ROTATION_SPEED = 0.01;
+    const ACCESSORY_BONE_CANDIDATES = {
+      hair: ['Head', 'mixamorigHead', 'mixamorig_Head'],
+      hat: ['Head', 'mixamorigHead', 'mixamorig_Head'],
+      glasses: ['Head', 'mixamorigHead', 'mixamorig_Head'],
+      mask: ['Head', 'mixamorigHead', 'mixamorig_Head'],
+      back: ['Spine2', 'Spine1', 'Spine', 'mixamorigSpine2', 'mixamorigSpine1', 'mixamorigSpine'],
+      wrist: ['RightHand', 'LeftHand', 'mixamorigRightHand', 'mixamorigLeftHand'],
+      outfit: ['Hips', 'Root', 'mixamorigHips']
+    };
 
     init();
     animate();
@@ -101,7 +113,7 @@
         0.01,
         200
       );
-      camera.position.set(0, 1.45, 4.2);
+      camera.position.set(0, 0.92, 5.2);
 
       renderer = new THREE.WebGLRenderer({
         canvas,
@@ -134,7 +146,7 @@
       controls.enableZoom = false;
       controls.minDistance = 2.0;
       controls.maxDistance = 7.0;
-      controls.target.set(0, 0.9, 0);
+      controls.target.set(0, 0.78, 0);
       controls.update();
 
       window.addEventListener('resize', onResize);
@@ -145,7 +157,9 @@
 
       try {
         await loadRoom();
-        await setCharacter('character1');
+        if (!externalCharacterRequested && !characterModel) {
+          await setCharacter('character1');
+        }
         status.style.display = 'none';
       } catch (error) {
         console.error(error);
@@ -174,12 +188,39 @@
 
     async function setCharacter(characterId) {
       const url = CHARACTER_URLS[characterId] || CHARACTER_URLS.character1;
-      status.style.display = 'block';
-      status.innerText = 'Loading ' + characterId + '...';
+      await setCharacterObject({
+        id: characterId,
+        name: characterId,
+        base: {
+          id: characterId,
+          slot: 'body',
+          url,
+          position: [0, 0, 0],
+          rotation: [0, 0, 0],
+          scale: [1, 1, 1],
+          hidesSlots: []
+        },
+        accessories: []
+      });
+    }
 
-      removeCharacter();
+    async function setCharacterObject(characterObject) {
+      const token = ++characterLoadToken;
+      const base = characterObject?.base || {};
+      const characterId = characterObject?.id || base.id || 'character1';
+      const url = base.url || CHARACTER_URLS[characterId] || CHARACTER_URLS.character1;
+
+      status.style.display = 'block';
+      status.innerText = 'Loading ' + (characterObject?.name || characterId) + '...';
+
+      removeCharacter(false);
 
       const gltf = await loader.loadAsync(url);
+      if (token !== characterLoadToken) {
+        disposeObject(gltf.scene);
+        return;
+      }
+
       characterModel = gltf.scene;
       characterModel.name = characterId;
       characterAnimationClips = gltf.animations || [];
@@ -193,8 +234,80 @@
       defaultIdleAction = null;
       currentAction = null;
 
+      const accessories = characterObject?.accessories || [];
+      for (const accessory of accessories) {
+        await loadAccessory(accessory, token);
+        if (token !== characterLoadToken) return;
+      }
+
       status.style.display = 'none';
       await playExternalAnimation(DEFAULT_IDLE_ANIMATION_URL);
+    }
+
+    async function loadAccessory(config, token) {
+      if (!characterModel || !config?.url) return;
+
+      const gltf = await loader.loadAsync(config.url);
+      if (token !== characterLoadToken) {
+        disposeObject(gltf.scene);
+        return;
+      }
+
+      const accessory = gltf.scene;
+      accessory.name = config.id || config.slot || 'accessory';
+      accessory.position.set(...(config.position || [0, 0, 0]));
+      accessory.rotation.set(...(config.rotation || [0, 0, 0]));
+      accessory.scale.set(...(config.scale || [1, 1, 1]));
+      prepareObject(accessory);
+
+      characterModel.add(accessory);
+      attachAccessoryToAnimatedBone(accessory, config.slot);
+      accessoryModels.push(accessory);
+    }
+
+    function attachAccessoryToAnimatedBone(accessory, slot) {
+      const bone = findAccessoryBone(characterModel, slot);
+      if (!bone) return;
+
+      characterModel.updateMatrixWorld(true);
+      accessory.updateMatrixWorld(true);
+      bone.attach(accessory);
+    }
+
+    function findAccessoryBone(root, slot) {
+      const candidates = ACCESSORY_BONE_CANDIDATES[slot] || [];
+
+      for (const name of candidates) {
+        const direct = root.getObjectByName(name);
+        if (direct?.isBone) return direct;
+      }
+
+      let fallback = null;
+      root.traverse((child) => {
+        if (fallback || !child.isBone) return;
+        const boneName = child.name.toLowerCase().replace(/[_\s]/g, '');
+
+        if (slot === 'hair' || slot === 'hat' || slot === 'glasses' || slot === 'mask') {
+          if (boneName.endsWith('head')) fallback = child;
+          return;
+        }
+
+        if (slot === 'back') {
+          if (boneName.includes('spine')) fallback = child;
+          return;
+        }
+
+        if (slot === 'wrist') {
+          if (boneName.endsWith('hand')) fallback = child;
+          return;
+        }
+
+        if (slot === 'outfit') {
+          if (boneName.endsWith('hips') || boneName.endsWith('root')) fallback = child;
+        }
+      });
+
+      return fallback;
     }
 
     async function playExternalAnimation(url) {
@@ -371,9 +484,11 @@
       }, 2500);
     }
 
-    function removeCharacter() {
+    function removeCharacter(invalidateLoad = true) {
+      if (invalidateLoad) characterLoadToken++;
       mixer = null;
       characterAnimationClips = [];
+      accessoryModels = [];
 
       if (!characterModel) return;
       scene.remove(characterModel);
@@ -426,10 +541,14 @@
       const center = box.getCenter(new THREE.Vector3());
       const size = box.getSize(new THREE.Vector3());
       const maxSize = Math.max(size.x, size.y, size.z);
-      const distance = Math.max(maxSize * 0.9, 4.0);
+      const distance = Math.max(maxSize * 1.15, 5.2);
 
-      controls.target.set(center.x, Math.max(center.y, 0.9), center.z);
-      camera.position.set(center.x, Math.max(center.y + 1.0, 1.35), center.z + distance);
+      controls.target.set(center.x, Math.max(center.y + 0.34, 0.74), center.z);
+      camera.position.set(
+        center.x,
+        Math.max(center.y + 0.46, 0.92),
+        center.z + distance * 1.18
+      );
       camera.near = 0.01;
       camera.far = Math.max(200, distance * 10);
       camera.updateProjectionMatrix();
@@ -487,10 +606,20 @@
     }
 
     window.setCharacter = function (characterId) {
+      externalCharacterRequested = true;
       setCharacter(characterId).catch((error) => {
         console.error(error);
         status.style.display = 'block';
         status.innerText = 'Cannot switch character:\n' + (error?.message || error);
+      });
+    };
+
+    window.setCharacterObject = function (characterObject) {
+      externalCharacterRequested = true;
+      setCharacterObject(characterObject).catch((error) => {
+        console.error(error);
+        status.style.display = 'block';
+        status.innerText = 'Cannot load saved character:\n' + (error?.message || error);
       });
     };
 

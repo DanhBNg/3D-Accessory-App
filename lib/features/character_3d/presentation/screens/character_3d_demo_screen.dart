@@ -6,9 +6,11 @@ import 'package:webview_flutter/webview_flutter.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../data/accessory_mock_data.dart';
 import '../../data/character_object_mock_data.dart';
+import '../../data/saved_character_build_store.dart';
 import '../../domain/entities/accessory_item.dart';
 import '../../domain/entities/accessory_slot.dart';
 import '../../domain/entities/character_3d_object.dart';
+import '../../domain/entities/saved_character_build.dart';
 import '../../web/local_3d_server.dart';
 import '../widgets/accessory_category_tabs.dart';
 import '../widgets/accessory_option_card.dart';
@@ -22,9 +24,11 @@ class Character3DDemoScreen extends StatefulWidget {
 
 class _Character3DDemoScreenState extends State<Character3DDemoScreen> {
   final _assetServer = Local3DAssetServer();
+  final _savedBuildStore = SavedCharacterBuildStore();
   late final WebViewController _controller;
 
   bool isViewerLoading = true;
+  bool isSavingBuild = false;
   String? viewerError;
   AccessorySlot selectedSlot = AccessorySlot.hair;
   String selectedCharacterId = characterObjects.first.id;
@@ -151,6 +155,40 @@ class _Character3DDemoScreenState extends State<Character3DDemoScreen> {
 
   Future<void> _resetView() async {
     await _controller.runJavaScript('resetView();');
+  }
+
+  Future<void> _saveCurrentBuild() async {
+    if (isSavingBuild) return;
+
+    setState(() => isSavingBuild = true);
+    final now = DateTime.now();
+    final build = SavedCharacterBuild(
+      id: now.microsecondsSinceEpoch.toString(),
+      name: '${selectedCharacter.name} ${now.hour.toString().padLeft(2, '0')}:'
+          '${now.minute.toString().padLeft(2, '0')}',
+      characterId: selectedCharacterId,
+      accessoryIdsBySlot: selectedAccessoryIds.map(
+        (slot, accessoryId) => MapEntry(slot.key, accessoryId),
+      ),
+      createdAt: now,
+    );
+
+    try {
+      await _savedBuildStore.saveBuild(build);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Saved ${build.name}')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Cannot save character: $error')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => isSavingBuild = false);
+      }
+    }
   }
 
   @override
@@ -319,6 +357,22 @@ class _Character3DDemoScreenState extends State<Character3DDemoScreen> {
                   const SizedBox(height: 14),
                   Row(
                     children: [
+                      Expanded(
+                        child: FilledButton.icon(
+                          onPressed: isSavingBuild ? null : _saveCurrentBuild,
+                          icon: isSavingBuild
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Icon(Icons.save),
+                          label: const Text('Luu nhan vat'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: OutlinedButton.icon(
                           onPressed: _rotateLeft,
