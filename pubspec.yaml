@@ -28,15 +28,9 @@ flutter:
   assets:
     - assets/web/
     - assets/models/characters_rigged/
-    - assets/models/hair/hair_style_1.glb
     - assets/models/hats/bucket_hat.glb
-    - assets/models/hats/hat_style_1.glb
-    - assets/models/glasses/
-    - assets/models/masks/
-    - assets/models/others/
-    - assets/thumbnails/hair/
-    - assets/thumbnails/hats/
-    - assets/thumbnails/glasses/
-    - assets/thumbnails/masks/
+    - assets/models/glasses/cybor_visor.glb
+    - assets/models/masks/medical_mask.glb
+    - assets/models/others/mini_backpack.glb
     - assets/models/room/
     - assets/models/animations/

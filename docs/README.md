@@ -9,8 +9,10 @@ This folder keeps the current project context compact. Removed docs should not b
 3. [Asset guide](asset-guide.md)
 4. [Roadmap](roadmap.md)
 5. [Shared character animation guide](shared-character-animation-guide.md)
-6. [3D AI tooling guide](3d-ai-tooling-guide.md)
-7. [3D model prompt guide](3d-model-prompt-guide.md)
+6. [Performance guide](performance-guide.md)
+7. [CDN model deployment guide - Vietnamese](cdn-model-deployment-guide.vi.md)
+8. [3D AI tooling guide](3d-ai-tooling-guide.md)
+9. [3D model prompt guide](3d-model-prompt-guide.md)
 
 ## Current App Areas
 

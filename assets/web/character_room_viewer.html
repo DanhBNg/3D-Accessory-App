@@ -66,6 +66,7 @@
     let clock;
     let currentAction;
     let defaultIdleAction;
+    let currentCharacterUrl = '/models/characters_rigged/character_1.glb';
     let statusTimer;
     let characterLoadToken = 0;
     let externalCharacterRequested = false;
@@ -78,6 +79,8 @@
 
     const canvas = document.getElementById('canvas');
     const status = document.getElementById('status');
+    const animationClipCache = new Map();
+    const remappedAnimationClipCache = new Map();
 
     const CHARACTER_URLS = {
       character1: '/models/characters_rigged/character_1.glb',
@@ -121,17 +124,15 @@
         antialias: true
       });
       renderer.setSize(window.innerWidth, window.innerHeight);
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
       renderer.outputColorSpace = THREE.SRGBColorSpace;
-      renderer.shadowMap.enabled = true;
-      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.shadowMap.enabled = false;
 
       const ambientLight = new THREE.AmbientLight(0xffffff, 1.6);
       scene.add(ambientLight);
 
       const keyLight = new THREE.DirectionalLight(0xffffff, 2.8);
       keyLight.position.set(3, 5, 4);
-      keyLight.castShadow = true;
       scene.add(keyLight);
 
       const fillLight = new THREE.DirectionalLight(0x8b5cf6, 1.1);
@@ -209,6 +210,7 @@
       const base = characterObject?.base || {};
       const characterId = characterObject?.id || base.id || 'character1';
       const url = base.url || CHARACTER_URLS[characterId] || CHARACTER_URLS.character1;
+      currentCharacterUrl = url;
 
       status.style.display = 'block';
       status.innerText = 'Loading ' + (characterObject?.name || characterId) + '...';
@@ -227,6 +229,8 @@
       prepareObject(characterModel);
 
       normalizeCharacter(characterModel);
+      characterFloorY = characterModel.position.y;
+      keepCharacterOnFloor();
       characterFloorY = characterModel.position.y;
       scene.add(characterModel);
 
@@ -331,24 +335,8 @@
         }
       } else {
         try {
-          let clip = characterAnimationClips[0];
-          if (!Object.values(CHARACTER_URLS).includes(url) || !clip) {
-            const gltf = await loader.loadAsync(url);
-            if (!gltf.animations?.length) return;
-            clip = gltf.animations[0];
-          }
-          clip = createCharacterClip(clip, characterModel);
-          const missingTargets = getMissingAnimationTargets(clip, characterModel);
-          if (missingTargets.length > 0) {
-            console.warn(
-              'Animation cannot drive this character. Missing targets:',
-              missingTargets
-            );
-            showTemporaryStatus(
-              'This character is not rigged for this animation.'
-            );
-            return;
-          }
+          const clip = await getCharacterAnimationClip(url);
+          if (!clip) return;
           nextAction = mixer.clipAction(clip);
           if (url === DEFAULT_IDLE_ANIMATION_URL) {
             defaultIdleAction = nextAction;
@@ -373,6 +361,50 @@
     function resetCharacterFloorPosition() {
       if (!characterModel) return;
       characterModel.position.y = characterFloorY;
+      keepCharacterOnFloor();
+      characterFloorY = characterModel.position.y;
+    }
+
+    async function getCharacterAnimationClip(url) {
+      const cacheKey = `${currentCharacterUrl}|${url}`;
+      const cachedClip = remappedAnimationClipCache.get(cacheKey);
+      if (cachedClip) return cachedClip;
+
+      const sourceClip = await getSourceAnimationClip(url);
+      if (!sourceClip) return null;
+
+      const clip = createCharacterClip(sourceClip, characterModel);
+      const missingTargets = getMissingAnimationTargets(clip, characterModel);
+      if (missingTargets.length > 0) {
+        console.warn(
+          'Animation cannot drive this character. Missing targets:',
+          missingTargets
+        );
+        showTemporaryStatus(
+          'This character is not rigged for this animation.'
+        );
+        return null;
+      }
+
+      remappedAnimationClipCache.set(cacheKey, clip);
+      return clip;
+    }
+
+    async function getSourceAnimationClip(url) {
+      if (!url) return null;
+
+      const cachedClip = animationClipCache.get(url);
+      if (cachedClip) return cachedClip;
+
+      let clip = characterAnimationClips[0];
+      if (!Object.values(CHARACTER_URLS).includes(url) || !clip) {
+        const gltf = await loader.loadAsync(url);
+        if (!gltf.animations?.length) return null;
+        clip = gltf.animations[0];
+      }
+
+      animationClipCache.set(url, clip);
+      return clip;
     }
 
     function createCharacterClip(clip, targetRoot) {
@@ -570,9 +602,8 @@
     function animate() {
       requestAnimationFrame(animate);
       const delta = clock ? clock.getDelta() : 0;
-      if (mixer) {
+      if (mixer && currentAction) {
         mixer.update(delta);
-        keepCharacterOnFloor();
       }
       if (controls) controls.update();
       renderer.render(scene, camera);

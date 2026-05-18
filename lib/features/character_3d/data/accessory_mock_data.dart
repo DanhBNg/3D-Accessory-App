@@ -3,17 +3,6 @@ import '../domain/entities/accessory_slot.dart';
 
 const List<AccessoryItem> accessoryItems = [
   AccessoryItem(
-    id: 'hair_style_1',
-    name: 'Hair 1',
-    slot: AccessorySlot.hair,
-    modelPath: 'assets/models/hair/hair_style_1.glb',
-    viewerPath: '/models/hair/hair_style_1.glb',
-    position: [0, 0.87, 0],
-    rotation: [0, 0.02, 0],
-    scale: [0.49, 0.49, 0.49],
-    thumbnailPath: 'assets/thumbnails/hair/hair_style_1.png',
-  ),
-  AccessoryItem(
     id: 'bucket_hat',
     name: 'Bucket Hat',
     slot: AccessorySlot.hat,
@@ -22,17 +11,6 @@ const List<AccessoryItem> accessoryItems = [
     position: [0, 0.90, -0.03],
     scale: [0.62, 0.62, 0.62],
     hidesSlots: [AccessorySlot.hair],
-  ),
-  AccessoryItem(
-    id: 'hat_style_1',
-    name: 'Hat 1',
-    slot: AccessorySlot.hat,
-    modelPath: 'assets/models/hats/hat_style_1.glb',
-    viewerPath: '/models/hats/hat_style_1.glb',
-    position: [0, 0.88, -0.04],
-    scale: [0.60, 0.60, 0.60],
-    hidesSlots: [AccessorySlot.hair],
-    thumbnailPath: 'assets/thumbnails/hats/hat_style_1.png',
   ),
   AccessoryItem(
     id: 'cybor_visor',
@@ -44,15 +22,6 @@ const List<AccessoryItem> accessoryItems = [
     scale: [0.42, 0.42, 0.42],
   ),
   AccessoryItem(
-    id: 'glassy_round',
-    name: 'Round Glasses',
-    slot: AccessorySlot.glasses,
-    modelPath: 'assets/models/glasses/glassy_round.glb',
-    viewerPath: '/models/glasses/glassy_round.glb',
-    position: [0, 0.72, 0.18],
-    scale: [0.42, 0.42, 0.42],
-  ),
-  AccessoryItem(
     id: 'medical_mask',
     name: 'Medical Mask',
     slot: AccessorySlot.mask,
@@ -60,16 +29,6 @@ const List<AccessoryItem> accessoryItems = [
     viewerPath: '/models/masks/medical_mask.glb',
     position: [0, 0.61, 0.20],
     scale: [0.42, 0.42, 0.42],
-  ),
-  AccessoryItem(
-    id: 'ninja_mask',
-    name: 'Ninja Mask',
-    slot: AccessorySlot.mask,
-    modelPath: 'assets/models/masks/ninja_mask.glb',
-    viewerPath: '/models/masks/ninja_mask.glb',
-    position: [0, 0.61, 0.17],
-    scale: [0.46, 0.46, 0.46],
-    hidesSlots: [AccessorySlot.glasses],
   ),
   AccessoryItem(
     id: 'mini_backpack',
