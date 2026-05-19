@@ -1,6 +1,6 @@
 # Hệ thống Phụ kiện & Animation 3D bằng Flutter 🚀
 
-Một ứng dụng Flutter tiên tiến thể hiện khả năng kết xuất (render) 3D động, hệ thống gắn phụ kiện mạnh mẽ và các hiệu ứng chuyển động (animation) mượt mà thông qua sự kết hợp giữa WebGL, Three.js và Flutter.
+Một ứng dụng Flutter thể hiện khả năng kết xuất (render) 3D động, hệ thống gắn phụ kiện mạnh mẽ và các hiệu ứng chuyển động (animation) mượt mà thông qua sự kết hợp giữa WebGL, Three.js và Flutter.
 
 ## 🌟 Tính năng Nổi bật
 
@@ -62,6 +62,3 @@ Một ứng dụng Flutter tiên tiến thể hiện khả năng kết xuất (r
 * Các chuyển động (animation) được tải động và `AnimationAction.crossFadeTo()` được sử dụng để đảm bảo các chuyển động được chuyển tiếp một cách mượt mà nhất.
 * Các thanh trượt điều chỉnh vị trí trên Flutter gửi dữ liệu bù (offset) theo thời gian thực để tinh chỉnh vị trí và độ xoay của các mesh phụ kiện được đính kèm.
 
-## 📄 Giấy phép (License)
-
-Dự án này là mã nguồn mở và được cung cấp theo Giấy phép MIT.
