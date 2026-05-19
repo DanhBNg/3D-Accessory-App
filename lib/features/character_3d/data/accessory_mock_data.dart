@@ -36,8 +36,8 @@ const List<AccessoryItem> accessoryItems = [
     slot: AccessorySlot.back,
     modelPath: 'assets/models/others/mini_backpack.glb',
     viewerPath: '/models/others/mini_backpack.glb',
-    position: [0, 0.30, -0.30],
+    position: [0, 0.05, -0.30],
     rotation: [0, 3.14, 0],
-    scale: [0.55, 0.55, 0.55],
+    scale: [0.3, 0.3, 0.3],
   ),
 ];
