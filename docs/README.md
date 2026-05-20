@@ -1,49 +1,19 @@
-# Flutter 3D Accessory Docs
+# Tài liệu dự án
 
-This folder keeps the current project context compact. Removed docs should not be recreated unless they add information that is not already covered here.
+Đây là bộ tài liệu tiếng Việt cho project `flutter_3d_accessory`. Tài liệu tập trung vào cách ứng dụng đang hoạt động trong repo hiện tại, không mô tả các ý tưởng chưa có trong code.
 
-## Recommended Reading Order
+## Mục lục
 
-1. [Project overview](project-overview.md)
-2. [Architecture](architecture.md)
-3. [Asset guide](asset-guide.md)
-4. [Roadmap](roadmap.md)
-5. [Shared character animation guide](shared-character-animation-guide.md)
-6. [Performance guide](performance-guide.md)
-7. [CDN model deployment guide - Vietnamese](cdn-model-deployment-guide.vi.md)
-8. [3D AI tooling guide](3d-ai-tooling-guide.md)
-9. [3D model prompt guide](3d-model-prompt-guide.md)
+- [Tổng quan dự án](tong-quan.md)
+- [Kiến trúc mã nguồn](kien-truc.md)
+- [Luồng hoạt động](luong-hoat-dong.md)
+- [Quản lý asset 3D](quan-ly-asset-3d.md)
+- [Quy trình phát triển](quy-trinh-phat-trien.md)
+- [Hiệu năng và triển khai](hieu-nang-va-trien-khai.md)
 
-## Current App Areas
+## Thành phần chính
 
-- `cinematic_vfx`: mock cinematic VFX UI and video previews.
-- `character_3d`: rigged character preview plus optional accessory overlay controls.
-- `character_room`: fixed-room viewer with rigged characters and reusable Mixamo-style animation GLBs.
-
-## Current Heavy Assets
-
-```text
-assets/models/room/room_default.glb
-assets/models/characters_rigged/character_1.glb
-assets/models/characters_rigged/character_2.glb
-assets/models/characters_rigged/character_3.glb
-assets/models/animations/breathing_idle.glb
-assets/models/animations/jumping_down.glb
-assets/models/animations/spin_act.glb
-assets/models/animations/hip_hop_dancing.glb
-```
-
-The APK will stay large while these GLBs are bundled in `pubspec.yaml`. For the lightest app, move GLB assets to a CDN and keep only `assets/web/` plus small config/fallback assets in the app bundle.
-
-## Current Room Behavior
-
-- Room is scaled up in `assets/web/character_room_viewer.html`.
-- Room/camera are fixed.
-- Horizontal drag rotates only the character around the Y axis.
-- Character floor offset is `0.48`.
-- Room floor is aligned to `0`.
-- `breathing_idle.glb` plays automatically when entering the room or switching character.
-
-## Local Helper Files
-
-`check_glb.dart` and `check_glb.py` are local helper scripts. They are not part of the committed app unless intentionally added later.
+- Flutter dựng giao diện, điều hướng màn hình và lưu cấu hình nhân vật.
+- WebView mở viewer HTML cục bộ trong `assets/web/`.
+- Three.js tải model `.glb`, gắn phụ kiện, điều khiển camera và phát animation.
+- Local HTTP server trong app phục vụ asset Flutter cho WebView qua `http://127.0.0.1:<port>`.
